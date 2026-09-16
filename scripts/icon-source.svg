@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#F4EFE6"/>
+
+  <g transform="translate(150,340)">
+    <!-- peacock neck/head, curved like the brand mark -->
+    <path d="M0,0
+             C -14,-70 8,-130 46,-160
+             C 74,-182 92,-172 90,-150
+             C 88,-132 68,-128 58,-112
+             C 44,-90 50,-58 30,-30
+             C 18,-14 8,-4 0,0 Z"
+          fill="#132A45"/>
+    <!-- crest -->
+    <circle cx="70" cy="-172" r="7" fill="#132A45"/>
+    <circle cx="82" cy="-180" r="6" fill="#D4A017"/>
+    <circle cx="58" cy="-182" r="6" fill="#132A45"/>
+    <!-- eye -->
+    <circle cx="66" cy="-146" r="4" fill="#F4EFE6"/>
+  </g>
+
+  <g transform="translate(150,340) rotate(-8)">
+    <!-- three simple feather leaves fanning out -->
+    <path d="M40,-40 C110,-60 190,-40 240,10 C190,-4 120,-8 40,-40 Z" fill="#0F5B4E"/>
+    <path d="M46,-70 C130,-110 220,-110 270,-70 C210,-92 130,-96 46,-70 Z" fill="#C4552D"/>
+    <path d="M46,-98 C120,-150 200,-160 240,-140 C180,-146 110,-134 46,-98 Z" fill="#D4A017"/>
+  </g>
+</svg>

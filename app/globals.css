@@ -1,0 +1,211 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+/* ── Hastkatha Design Tokens ─────────────────────────────── */
+/* Peacock brand identity: navy (primary), deep green + terracotta (accents),
+   mustard gold (highlight), warm beige (ground). */
+:root {
+  --ks-earth:      #132A45;  /* navy — ink + header/nav chrome */
+  --ks-indigo:     #132A45;  /* navy — primary actions (same as ink, single-accent brand) */
+  --ks-clay:       #C4552D;  /* terracotta — secondary accent */
+  --ks-saffron:    #D4A017;  /* mustard gold — tertiary / hover */
+  --ks-turmeric:   #D4A017;  /* mustard gold — highlight */
+  --ks-paper:      #F4EFE6;  /* warm beige — page bg */
+  --ks-linen:      #ECE4D3;  /* deeper beige — card bg */
+  --ks-ivory:      #FAF7F0;  /* near-white cream — input bg */
+  --ks-jade:       #0F5B4E;  /* deep green — success */
+  --ks-muted:      #5C6B7A;  /* muted navy-grey — secondary text */
+  --ks-border:     rgba(19, 42, 69, 0.14);
+
+  /* English/Latin renders in the brand fonts; any Indic script (Telugu,
+     Hindi, Tamil, etc.) silently falls through to the multilingual fonts,
+     since Playfair Display and Poppins have no Indic glyphs at all. */
+  --font-display:  'Playfair Display', 'Hind Siliguri', serif;
+  --font-body:     'Poppins', 'Noto Sans', sans-serif;
+}
+
+/* ── Kalamkari motifs ───────────────────────────────────────
+   Craft-specific decoration, used sparingly: a zari tick-weave band
+   (Venkatagiri border), an ikat-blur texture, and a kalamkari creeper
+   frieze. Nothing here competes with buttons or text for attention. */
+.ks-zari-band {
+  height: 6px;
+  background-image: repeating-linear-gradient(115deg, transparent 0 3px, rgba(212, 160, 23, .65) 3px 4px, transparent 4px 9px);
+  background-color: var(--ks-indigo);
+}
+
+.ks-banner-ikat {
+  background:
+    repeating-linear-gradient(100deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 7px, rgba(255, 255, 255, .035) 7px 10px, transparent 10px 18px),
+    var(--ks-indigo);
+}
+
+.ks-frieze {
+  height: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='18' viewBox='0 0 36 18'%3E%3Cpath d='M0 9 Q9 2 18 9 T36 9' fill='none' stroke='%23C4552D' stroke-width='1.1'/%3E%3Ccircle cx='9' cy='5.2' r='1.6' fill='%23132A45'/%3E%3Ccircle cx='27' cy='12.8' r='1.6' fill='%23132A45'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 36px 18px;
+  opacity: .85;
+}
+
+/* A faint diamond-lattice texture (the pattern from the brand board's
+   "Pattern & Texture" swatch) for a handful of otherwise-flat surfaces —
+   empty states, auth cards. Kept to a low opacity on purpose: the brand
+   board itself warns against busy backgrounds, so this reads as a subtle
+   woven-textile ground, not a loud repeating graphic. */
+.ks-lattice {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cpath d='M22 3 L41 22 L22 41 L3 22 Z' fill='none' stroke='%23D4A017' stroke-opacity='0.4' stroke-width='1'/%3E%3Ccircle cx='22' cy='22' r='1.4' fill='%23C4552D' fill-opacity='0.4'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 44px 44px;
+}
+
+/* A "framed" card: the same creeper motif from .ks-frieze, top and bottom,
+   around a card's content. Used for the more prominent sections (getting-
+   started checklist, quick actions) so they read as a woven textile panel
+   rather than a flat box, without fighting CSS border-image cross-browser
+   quirks. Content goes in a plain child div — the frame is decorative only,
+   so it never intercepts clicks or affects layout of what's inside. */
+.ks-motif-frame {
+  position: relative;
+  background: var(--ks-ivory);
+  border-left: 1px solid var(--ks-border);
+  border-right: 1px solid var(--ks-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ks-motif-frame::before,
+.ks-motif-frame::after {
+  content: '';
+  display: block;
+  height: 9px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='9' viewBox='0 0 30 9'%3E%3Cpath d='M0 4.5 Q7.5 1 15 4.5 T30 4.5' fill='none' stroke='%23C4552D' stroke-width='1'/%3E%3Ccircle cx='7.5' cy='2.6' r='1' fill='%23132A45'/%3E%3Ccircle cx='22.5' cy='6.4' r='1' fill='%23132A45'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 30px 9px;
+}
+.ks-motif-frame > .ks-motif-frame-body {
+  padding: 18px 16px;
+}
+
+/* Corner-dot accent for a card header: two small terracotta dots either
+   side of a title, evoking a border medallion without a heavy asset. */
+.ks-motif-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ks-clay);
+  vertical-align: middle;
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-body);
+  /* A faint diamond-lattice weave (same motif as .ks-lattice) under the
+     solid page colour — a whisper of woven texture across every screen,
+     not just the surfaces that already opt into .ks-lattice explicitly. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cpath d='M22 3 L41 22 L22 41 L3 22 Z' fill='none' stroke='%23D4A017' stroke-opacity='0.22' stroke-width='1'/%3E%3Ccircle cx='22' cy='22' r='1.4' fill='%23C4552D' fill-opacity='0.22'/%3E%3C/svg%3E");
+  background-color: var(--ks-paper);
+  color: var(--ks-earth);
+  min-height: 100vh;
+}
+
+/* ── Typography ─────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ks-earth);
+  line-height: 1.2;
+}
+
+p {
+  line-height: 1.7;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ks-muted); border-radius: 2px; }
+
+/* ── Interactivity ──────────────────────────────────────────
+   Applied globally so every button/card across the app gets a felt
+   response to touch/click without needing per-page changes: a quick
+   press-down on click, a lift on hover for pointer devices, and a
+   visible focus ring for keyboard users. Respects reduced-motion. */
+button {
+  transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+@media (hover: hover) {
+  button:not(:disabled):hover {
+    filter: brightness(1.06);
+  }
+  a:hover {
+    filter: brightness(1.03);
+  }
+}
+a {
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--ks-turmeric);
+  outline-offset: 2px;
+}
+
+@keyframes ks-pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ks-pop-in {
+  animation: ks-pop-in 0.28s ease-out;
+}
+
+@keyframes ks-spin {
+  to { transform: rotate(360deg); }
+}
+.ks-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ks-spin 0.7s linear infinite;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+@keyframes ks-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.ks-skeleton {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--ks-border, #e5ddd0) 25%, var(--ks-ivory, #f3ede1) 37%, var(--ks-border, #e5ddd0) 63%);
+  background-size: 400px 100%;
+  animation: ks-shimmer 1.4s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, a, .ks-pop-in {
+    transition: none !important;
+    animation: none !important;
+  }
+  .ks-spinner, .ks-skeleton {
+    animation: none !important;
+  }
+}

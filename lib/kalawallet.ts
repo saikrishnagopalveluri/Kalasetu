@@ -1,0 +1,40 @@
+// Server-only KalaWallet helpers. Import only from API routes (uses
+// supabaseAdmin) — never from client components, since redeem() must never
+// trust a client-supplied balance. Balance is always the sum of a user's
+// own transaction history, never a separately stored number that could
+// drift from it.
+import { supabaseAdmin } from './supabaseAdmin'
+
+export async function getBalance(userId: string): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { data } = await supabaseAdmin.from('wallet_transactions').select('amount').eq('user_id', userId)
+  return (data ?? []).reduce((sum, row) => sum + row.amount, 0)
+}
+
+export async function earn(
+  userId: string,
+  amount: number,
+  type: 'WELCOME_BONUS' | 'REFERRAL_EMPOWERMENT' | 'ONBOARDING_COMPLETE' | 'ADMIN_ADJUSTMENT',
+  description: string,
+  referenceId?: string
+) {
+  if (!supabaseAdmin || amount <= 0) return
+  await supabaseAdmin.from('wallet_transactions').insert({
+    user_id: userId, amount, type, description, reference_id: referenceId ?? null,
+  })
+}
+
+// Never lets a balance go negative — checks the real, server-computed
+// balance immediately before inserting, same principle as the Razorpay
+// verify route re-checking the authoritative order rather than trusting
+// what the client claims.
+export async function redeem(userId: string, amount: number, description: string): Promise<{ ok: boolean; error?: string }> {
+  if (!supabaseAdmin) return { ok: false, error: 'Not configured' }
+  if (amount <= 0) return { ok: false, error: 'Invalid amount' }
+  const balance = await getBalance(userId)
+  if (amount > balance) return { ok: false, error: 'Insufficient KalaPoints' }
+  await supabaseAdmin.from('wallet_transactions').insert({
+    user_id: userId, amount: -amount, type: 'REDEMPTION', description,
+  })
+  return { ok: true }
+}
