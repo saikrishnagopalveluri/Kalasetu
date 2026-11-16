@@ -4,7 +4,7 @@ import RequireAuth from '@/components/RequireAuth'
 import { useLanguage } from '@/lib/LanguageProvider'
 import type { TranslationKey } from '@/lib/translations'
 import {
-  IconProducts, IconStudio, IconContent, IconDesign, IconPromote, IconCatalogue, IconContent as IconStory,
+  IconProducts, IconStudio, IconContent, IconDesign, IconPromote, IconCatalogue, IconContent as IconStory, IconSaathi,
 } from '@/components/CraftIcons'
 
 type CreateCard = { Icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>; titleKey: TranslationKey; descKey: TranslationKey; href: string; accent: string; isModal?: boolean }
@@ -17,6 +17,7 @@ const CARDS: CreateCard[] = [
   { Icon: IconPromote,  titleKey: 'create.promote.title',  descKey: 'create.promote.desc',  href: '/promote',  accent: '#D4A017' },
   { Icon: IconCatalogue, titleKey: 'create.catalogue.title', descKey: 'create.catalogue.desc', href: '/catalogue', accent: '#D4A017' },
   { Icon: IconStory,    titleKey: 'create.story.title',    descKey: 'create.story.desc',    href: '/community/new', accent: '#C4552D' },
+  { Icon: IconSaathi,   titleKey: 'saathi.ctaTitle',       descKey: 'saathi.ctaDesc',        href: '/saathi',    accent: '#C4552D' },
 ]
 
 function CreateHubInner() {

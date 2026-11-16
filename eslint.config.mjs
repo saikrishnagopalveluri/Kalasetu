@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Separate projects that live in this folder but are not part of the app:
+    "OpenJarvis/**",
+    "pagekaro/**",
   ]),
 ]);
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -132,16 +133,16 @@ function ProductDetailInner() {
     return (
       <div>
         <p style={{ fontSize: 14, color: 'var(--ks-earth)', marginBottom: 16 }}>{t('products.notFound')}</p>
-        <a href="/products" style={{ color: 'var(--ks-indigo)', fontWeight: 600, fontSize: 14 }}>← {t('products.backToProducts')}</a>
+        <Link href="/products" style={{ color: 'var(--ks-indigo)', fontWeight: 600, fontSize: 14 }}>← {t('products.backToProducts')}</Link>
       </div>
     )
   }
 
   return (
     <div>
-      <a href="/products" style={{ display: 'inline-block', color: 'var(--ks-indigo)', fontWeight: 600, fontSize: 13.5, marginBottom: 16, textDecoration: 'none' }}>
+      <Link href="/products" style={{ display: 'inline-block', color: 'var(--ks-indigo)', fontWeight: 600, fontSize: 13.5, marginBottom: 16, textDecoration: 'none' }}>
         ← {t('products.backToProducts')}
-      </a>
+      </Link>
 
       {/* Banner / carousel */}
       {slides.length > 0 ? (

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import RequireAdmin from '@/components/RequireAdmin'
@@ -16,6 +17,7 @@ type Artisan = {
 }
 
 type Blog = { id: string; slug: string; title: string; category: string; created_at: string }
+type Story = { id: string; slug: string; title: string; status: string; category: string; author_id: string; likes_count: number; created_at: string }
 type Opportunity = { id: string; type: string; title: string; deadline: string | null }
 type Video = { id: string; youtube_id: string; title: string; language: string; category: string }
 type SchemeSource = { id: string; url: string; label: string; category: string; active: boolean; robots_allowed: boolean | null; last_checked_at: string | null }
@@ -28,7 +30,7 @@ const TIER_COLOR: Record<string, string> = {
   pro: 'var(--ks-indigo)',
   premium: 'var(--ks-jade)',
 }
-const TABS = ['Artisans', 'Blogs', 'Opportunities', 'Scheme Sources', 'Videos'] as const
+const TABS = ['Artisans', 'Blogs', 'Stories', 'Opportunities', 'Scheme Sources', 'Videos'] as const
 
 function OperationsInner() {
   const [tab, setTab] = useState<typeof TABS[number]>('Artisans')
@@ -38,7 +40,7 @@ function OperationsInner() {
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--ks-earth)', marginBottom: 4 }}>
         Artisans &amp; Content
       </h1>
-      <a href="/admin" style={{ fontSize: 12.5, color: 'var(--ks-indigo)', textDecoration: 'none' }}>← Admin home</a>
+      <Link href="/admin" style={{ fontSize: 12.5, color: 'var(--ks-indigo)', textDecoration: 'none' }}>← Admin home</Link>
 
       <div role="tablist" aria-label="Content sections" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '18px 0 20px' }}>
         {TABS.map((t) => (
@@ -62,6 +64,7 @@ function OperationsInner() {
 
       {tab === 'Artisans' && <ArtisansTab />}
       {tab === 'Blogs' && <BlogsTab />}
+      {tab === 'Stories' && <StoriesTab />}
       {tab === 'Opportunities' && <OpportunitiesTab />}
       {tab === 'Scheme Sources' && <SchemeSourcesTab />}
       {tab === 'Videos' && <VideosTab />}
@@ -205,6 +208,66 @@ function BlogsTab() {
           <button onClick={() => handleDelete(b.id)} style={deleteBtn}>Delete</button>
         </div>
       ))}
+    </div>
+  )
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  PUBLISHED: 'var(--ks-jade)',
+  PENDING_REVIEW: 'var(--ks-turmeric)',
+  DRAFT: 'var(--ks-muted)',
+}
+
+function StoriesTab() {
+  const [stories, setStories] = useState<Story[] | null>(null)
+  const [names, setNames] = useState<Map<string, string>>(new Map())
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    const { data } = await supabase!
+      .from('stories')
+      .select('id, slug, title, status, category, author_id, likes_count, created_at')
+      .order('created_at', { ascending: false })
+    setStories(data ?? [])
+
+    const authorIds = [...new Set((data ?? []).map((s) => s.author_id))]
+    if (authorIds.length > 0) {
+      const { data: profiles } = await supabase!.from('artisan_profiles').select('id, name').in('id', authorIds)
+      setNames(new Map((profiles ?? []).map((p: { id: string; name: string }) => [p.id, p.name])))
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await supabase!.from('stories').delete().eq('id', id)
+    load()
+  }
+
+  if (stories === null) return <p style={{ fontSize: 13, color: 'var(--ks-muted)' }}>Loading…</p>
+  if (stories.length === 0) return <p style={{ fontSize: 13, color: 'var(--ks-muted)' }}>No stories yet.</p>
+
+  return (
+    <div>
+      <p style={{ fontSize: 12, color: 'var(--ks-muted)', marginBottom: 10 }}>{stories.length} stor{stories.length === 1 ? 'y' : 'ies'}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {stories.map((s) => (
+          <div key={s.id} style={{
+            ...rowStyle, marginBottom: 0,
+            borderLeft: `3px solid ${STATUS_COLOR[s.status] ?? 'var(--ks-muted)'}`,
+          }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ks-earth)' }}>
+                {s.status === 'PUBLISHED' ? <a href={`/community/${s.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{s.title}</a> : s.title}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ks-muted)' }}>
+                {names.get(s.author_id) ?? s.author_id.slice(0, 8)} · {s.category} · {s.status}
+                {s.status === 'PUBLISHED' ? ` · ❤ ${s.likes_count}` : ''}
+              </div>
+            </div>
+            <button onClick={() => handleDelete(s.id)} style={deleteBtn}>Delete</button>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

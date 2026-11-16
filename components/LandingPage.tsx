@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/lib/LanguageProvider'
 import { LANGUAGES } from '@/lib/languages'
 import type { TranslationKey } from '@/lib/translations'
 import { supabase } from '@/lib/supabase'
+import { BRAND } from '@/lib/brand'
 import PeacockMark from '@/components/PeacockMark'
 import FeatherFlourish from '@/components/FeatherFlourish'
 
@@ -84,25 +86,52 @@ export default function LandingPage() {
           {t('landing.heroSubtitle')}
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="/signup" style={{
+          <Link href="/signup" style={{
             background: 'var(--ks-turmeric)', color: 'var(--ks-earth)', textDecoration: 'none',
             borderRadius: 10, padding: '14px 28px', fontSize: 14.5, fontWeight: 700,
             boxShadow: '0 8px 20px rgba(212,160,23,0.35)',
           }}>
             {t('landing.getStarted')}
-          </a>
-          <a href="/login" style={{
+          </Link>
+          <Link href="/login" style={{
             background: 'rgba(255,255,255,0.1)', color: '#fff', textDecoration: 'none',
             border: '1px solid rgba(255,255,255,0.32)', borderRadius: 10, padding: '14px 28px', fontSize: 14.5, fontWeight: 600,
           }}>
             {t('landing.logIn')}
-          </a>
+          </Link>
         </div>
         <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)', marginTop: 18, letterSpacing: '0.01em' }}>
           {t('landing.noCard')}
         </p>
         </div>
       </div>
+
+      {/* Introduction video. No autoplay and preload="none": it carries
+          sound, and a 4 MB file shouldn't cost a visitor data before they
+          choose to watch it. Only rendered for the brand the video was made for. */}
+      {BRAND.introVideo && (
+        <div style={{ marginBottom: 30 }}>
+          <h2 style={{
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 4.5vw, 22px)', color: 'var(--ks-earth)',
+            textAlign: 'center', marginBottom: 14,
+          }}>
+            {t('landing.videoTitle')}
+          </h2>
+          <video
+            controls
+            playsInline
+            preload="none"
+            poster={BRAND.introVideo.poster}
+            aria-label={t('landing.videoTitle')}
+            style={{
+              display: 'block', width: '100%', aspectRatio: '16 / 9', borderRadius: 14,
+              background: '#132A45', boxShadow: '0 10px 30px rgba(19,42,69,0.22)',
+            }}
+          >
+            <source src={BRAND.introVideo.src} type="video/mp4" />
+          </video>
+        </div>
+      )}
 
       {/* Language pride */}
       <div style={{ textAlign: 'center', marginBottom: 30 }}>
@@ -188,9 +217,9 @@ export default function LandingPage() {
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 19, color: 'var(--ks-earth)' }}>
               📚 {t('landing.blog.heading')}
             </h2>
-            <a href="/blog" style={{ fontSize: 12.5, color: 'var(--ks-clay)', fontWeight: 600, textDecoration: 'none' }}>
+            <Link href="/blog" style={{ fontSize: 12.5, color: 'var(--ks-clay)', fontWeight: 600, textDecoration: 'none' }}>
               {t('landing.blog.cta')} <span aria-hidden="true">→</span>
-            </a>
+            </Link>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
             {blogPreview.map((p) => (
@@ -225,13 +254,13 @@ export default function LandingPage() {
         textAlign: 'center', background: 'var(--ks-linen)', borderRadius: 16,
         padding: '32px 24px', marginBottom: 8,
       }}>
-        <a href="/signup" style={{
+        <Link href="/signup" style={{
           display: 'inline-block', background: 'var(--ks-indigo)', color: '#fff', textDecoration: 'none',
           borderRadius: 10, padding: '14px 32px', fontSize: 14.5, fontWeight: 700, marginBottom: 14,
           boxShadow: '0 8px 20px rgba(19,42,69,0.22)',
         }}>
           {t('landing.getStarted')}
-        </a>
+        </Link>
         <p style={{ fontSize: 12, color: 'var(--ks-muted)' }}>
           {t('landing.footer.tagline')}
         </p>

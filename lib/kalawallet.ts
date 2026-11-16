@@ -24,17 +24,19 @@ export async function earn(
   })
 }
 
-// Never lets a balance go negative — checks the real, server-computed
-// balance immediately before inserting, same principle as the Razorpay
-// verify route re-checking the authoritative order rather than trusting
-// what the client claims.
+// Never lets a balance go negative. The balance check and the debit insert
+// happen as one atomic, per-user-locked operation inside
+// redeem_kalapoints() (see supabase/037_atomic_wallet_redeem.sql) — a plain
+// read-then-write here would leave a race where two concurrent redemptions,
+// each individually valid against the same starting balance, could both
+// succeed and take the balance negative.
 export async function redeem(userId: string, amount: number, description: string): Promise<{ ok: boolean; error?: string }> {
   if (!supabaseAdmin) return { ok: false, error: 'Not configured' }
   if (amount <= 0) return { ok: false, error: 'Invalid amount' }
-  const balance = await getBalance(userId)
-  if (amount > balance) return { ok: false, error: 'Insufficient KalaPoints' }
-  await supabaseAdmin.from('wallet_transactions').insert({
-    user_id: userId, amount: -amount, type: 'REDEMPTION', description,
+  const { data, error } = await supabaseAdmin.rpc('redeem_kalapoints', {
+    p_user_id: userId, p_amount: amount, p_description: description,
   })
+  if (error) return { ok: false, error: 'Redemption failed' }
+  if (!data) return { ok: false, error: 'Insufficient KalaPoints' }
   return { ok: true }
 }

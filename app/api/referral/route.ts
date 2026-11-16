@@ -54,9 +54,23 @@ async function handleRegister(userId: string, code: string) {
     return NextResponse.json({ ok: true, registered: false })
   }
 
+  // A deleted-and-recreated account would otherwise look brand new here —
+  // referred_user_id nulls out on account deletion (on delete set null),
+  // erasing the fact this person was already referred and rewarded. The
+  // email is captured independently of the account row so that history
+  // survives account deletion.
+  const { data: userData } = await supabaseAdmin!.auth.admin.getUserById(userId)
+  const email = userData?.user?.email ?? null
+  if (email) {
+    const { data: priorByEmail } = await supabaseAdmin!
+      .from('saathi_referrals').select('id').eq('referred_email', email).maybeSingle()
+    if (priorByEmail) return NextResponse.json({ ok: true, registered: false })
+  }
+
   const { error } = await supabaseAdmin!.from('saathi_referrals').insert({
     saathi_id: saathi.id,
     referred_user_id: userId,
+    referred_email: email,
     referral_code: code,
     status: 'REGISTERED',
     registered_at: new Date().toISOString(),
@@ -77,6 +91,19 @@ async function handleAdvance(userId: string, stage: AdvanceBody['stage']) {
     .from('saathi_referrals').select('*').eq('referred_user_id', userId).maybeSingle()
   if (!referral) return NextResponse.json({ ok: true, noReferral: true })
   if (referral.status === 'REWARD_UNLOCKED') return NextResponse.json({ ok: true, alreadyUnlocked: true })
+
+  // The client only tells us WHICH milestone it thinks just happened — it
+  // never gets to assert that the milestone is real. A referral is worth
+  // real money (see unlockReward below), so every stage is independently
+  // re-verified here against its actual source of truth before the column
+  // is set, the same principle as Razorpay verify re-checking the order
+  // instead of trusting a client-reported "payment succeeded" flag.
+  const milestoneReallyHappened = stage === 'PROFILE_COMPLETED'
+    ? await hasCompletedProfile(userId)
+    : await hasCreatedProduct(userId)
+  if (!milestoneReallyHappened) {
+    return NextResponse.json({ ok: true, verified: false })
+  }
 
   const column = stage === 'PROFILE_COMPLETED' ? 'profile_completed_at' : 'first_product_at'
   if (!referral[column]) {
@@ -99,6 +126,21 @@ async function handleAdvance(userId: string, stage: AdvanceBody['stage']) {
   }
 
   return NextResponse.json({ ok: true })
+}
+
+// Same bar app/profile/page.tsx already uses client-side to decide whether
+// to even call advanceReferral('PROFILE_COMPLETED') — re-checked here
+// server-side because that client call is advisory, not authoritative.
+async function hasCompletedProfile(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin!
+    .from('artisan_profiles').select('profile_photo_url, about').eq('id', userId).maybeSingle()
+  return !!(data?.profile_photo_url && data?.about?.trim())
+}
+
+async function hasCreatedProduct(userId: string): Promise<boolean> {
+  const { count } = await supabaseAdmin!
+    .from('products').select('id', { count: 'exact', head: true }).eq('user_id', userId)
+  return (count ?? 0) > 0
 }
 
 async function unlockReward(referralId: string, saathiId: string, referredUserId: string) {

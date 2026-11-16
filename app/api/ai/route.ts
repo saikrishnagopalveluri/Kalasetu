@@ -3,6 +3,7 @@ import Groq from 'groq-sdk'
 import { NextRequest, NextResponse } from 'next/server'
 import { LANGUAGE_NAMES } from '@/lib/languages'
 import { requireUser } from '@/lib/requireUser'
+import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { BRAND } from '@/lib/brand'
 
 const client = new Anthropic({
@@ -14,6 +15,14 @@ const groqClient = process.env.GROQ_API_KEY
   : null
 
 const GROQ_MODEL = 'openai/gpt-oss-120b'
+
+// The system prompt says "no em dashes," but models don't follow that
+// perfectly (confirmed on a real test call), and this is live chat output
+// with no human review before the artisan reads it. Same fix, same
+// reasoning, as the one already applied to blog generation.
+function stripEmDash(text: string): string {
+  return text.replace(/\s*--\s*/g, ', ').replace(/\s*—\s*/g, ', ').replace(/,\s*,/g, ',')
+}
 
 // System prompt: the brand's AI identity.
 const SYSTEM_PROMPT = `You are ${BRAND.name} AI, a helpful, warm business assistant built specifically for traditional Indian artisans.
@@ -35,13 +44,23 @@ Guidelines:
 - Avoid jargon. Speak like a knowledgeable friend, not a consultant
 - Write like a real person, not an AI assistant: no em dashes, no "delve"/"boasts"/"testament to"/"elevate" style filler, no forced rule-of-three lists. Vary sentence length. Say things plainly.
 
-Safety: if a message expresses intent to self-harm, suicidal thoughts, or a mental health crisis, set aside the business task. Respond with brief empathy, then share these India helplines: KIRAN Mental Health Helpline 1800-599-0019 (24/7, toll-free), iCall 9152987821, or Vandrevala Foundation 1860-2662-345. Gently encourage them to reach out to one now or to someone they trust. Do not attempt therapy or diagnosis yourself.`
+Scope: you only answer questions about crafts and craft techniques, artisans and their businesses, ${BRAND.name}'s own digital tools, running a small business (pricing, marketing, orders, customers), ${BRAND.name} itself, and government schemes for artisans. That is the whole scope, nothing else.
+If a message asks anything outside that scope, with no emotional weight to it (general trivia, current events, personal questions about you, or any other unrelated topic), do not answer it. Reply briefly and warmly that you're built specifically to help with craft business questions, and ask what they're working on. One or two sentences, no lecture, no listing what you can't do.
+
+If instead someone shares something sad, stressful, or difficult, ordinary low mood, a hard week, frustration with the business or with life, that is not itself a crisis (see Safety below): do not redirect them straight to "let's talk business" and do not deliver the off-topic line above, that reads as cold and dismissive to someone who just told you they're struggling. Give one short, genuine sentence acknowledging what they said, in their own words, not a clinical or scripted line. Only after that, gently bridge back, for example asking if there's something on the business side you can help lighten, but never insist on it in the same breath and never pretend nothing was said.
+
+This scope limit does not apply to the safety rule below; a real crisis disclosure is never "off-topic."
+
+Safety: if a message expresses intent to self-harm, suicidal thoughts, or a mental health crisis, set aside the business task and the scope limit above entirely. Respond with brief empathy, then share these India helplines: KIRAN Mental Health Helpline 1800-599-0019 (24/7, toll-free), iCall 9152987821, or Vandrevala Foundation 1860-2662-345. Gently encourage them to reach out to one now or to someone they trust. Do not attempt therapy or diagnosis yourself, and do not try to redirect to business in the same message.`
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireUser(request)
-    if (!auth.ok) {
+    if (!auth.ok || !auth.userId) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+    }
+    if (isRateLimited(userKey(auth.userId), 30, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 })
     }
 
     const body = await request.json()
@@ -143,7 +162,7 @@ Never present invented cultural or historical claims as fact. If unsure, put the
       }
 
       return NextResponse.json({
-        text: textContent.text,
+        text: stripEmDash(textContent.text),
         usage: {
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,
@@ -173,7 +192,7 @@ Never present invented cultural or historical claims as fact. If unsure, put the
       }
 
       return NextResponse.json({
-        text,
+        text: stripEmDash(text),
         usage: {
           input_tokens: groqResponse.usage?.prompt_tokens ?? 0,
           output_tokens: groqResponse.usage?.completion_tokens ?? 0,

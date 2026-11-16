@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { LANGUAGES } from '@/lib/languages'
 import { isRateLimited, clientKey } from '@/lib/rateLimit'
+import { applyBrandToText, normalizeBrandToToken } from '@/lib/applyBrand'
 
 // Deliberately unauthenticated — /blog itself is public now, so a reader
 // browsing in Hindi shouldn't need to log in just to get a translated post.
@@ -29,11 +30,17 @@ function sleep(ms: number) {
 // several of these concurrently (see BlogListView, which also batches its
 // own requests) — retry once on anything that looks like a rate limit
 // before falling back to Groq, same fix applied to the daily-blog cron.
+function stripEmDash(text: string): string {
+  return text.replace(/\s*--\s*/g, ', ').replace(/\s*—\s*/g, ', ').replace(/,\s*,/g, ',')
+}
+
 async function callAI(system: string, user: string): Promise<string | null> {
+  // 6144, not the old 3072 — posts now run 1200-1800 words plus an FAQ
+  // section, which was getting truncated mid-JSON under the old ceiling.
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const res = await anthropic.messages.create({
-        model: 'claude-sonnet-5', max_tokens: 3072, system, messages: [{ role: 'user', content: user }],
+        model: 'claude-sonnet-5', max_tokens: 6144, system, messages: [{ role: 'user', content: user }],
       })
       const block = res.content.find((b) => b.type === 'text')
       return block && block.type === 'text' ? block.text : null
@@ -50,8 +57,13 @@ async function callAI(system: string, user: string): Promise<string | null> {
   }
   if (!groqClient) return null
   try {
+    // 3500, not 6144 — see the identical fix (and its full reasoning) in
+    // the daily-blog cron's callAI: Groq's per-minute limit is charged
+    // against max_tokens requested, not tokens actually produced, so a
+    // ceiling far above what a post really needs guarantees collisions
+    // with any other call sharing this account within the same minute.
     const res = await groqClient.chat.completions.create({
-      model: 'openai/gpt-oss-120b', max_tokens: 3072,
+      model: 'openai/gpt-oss-120b', max_tokens: 3500,
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
     })
     return res.choices[0]?.message?.content ?? null
@@ -61,12 +73,18 @@ async function callAI(system: string, user: string): Promise<string | null> {
   }
 }
 
-function parseJson(raw: string): { title: string; summary?: string; content?: string } | null {
-  try {
-    return JSON.parse(raw.replace(/^```json\s*|```\s*$/g, '').trim())
-  } catch {
-    return null
-  }
+// Plain-text TITLE:/SUMMARY:/CONTENT: markers, not JSON — a multi-paragraph
+// article is exactly the case where asking a model to hand-escape line
+// breaks into a valid JSON string goes wrong (see the same fix in the
+// daily-blog cron, where this failure mode first showed up for real).
+function parseDelimited(raw: string): { title: string; summary?: string; content?: string } | null {
+  const cleaned = raw.replace(/^```[a-z]*\s*|```\s*$/gi, '').trim()
+  const titleMatch = cleaned.match(/^TITLE:\s*(.+)$/im)
+  const summaryMatch = cleaned.match(/^SUMMARY:\s*(.+)$/im)
+  const contentIdx = cleaned.search(/^CONTENT:\s*$/im)
+  if (!titleMatch) return null
+  const content = contentIdx === -1 ? undefined : cleaned.slice(cleaned.indexOf('\n', contentIdx) + 1).trim()
+  return { title: titleMatch[1].trim(), summary: summaryMatch?.[1]?.trim(), content }
 }
 
 export async function POST(request: NextRequest) {
@@ -93,24 +111,58 @@ export async function POST(request: NextRequest) {
   const { data: cached } = await supabaseAdmin
     .from('blog_translations').select('title, summary, content')
     .eq('blog_slug', slug).eq('language', lang.id).maybeSingle()
-  if (cached && (cached.content || cached.summary)) return NextResponse.json(cached)
+  if (cached && (cached.content || cached.summary)) {
+    return NextResponse.json({
+      title: applyBrandToText(cached.title),
+      summary: cached.summary ? applyBrandToText(cached.summary) : cached.summary,
+      content: cached.content ? applyBrandToText(cached.content) : cached.content,
+    })
+  }
 
   const { data: post } = await supabaseAdmin.from('blogs').select('slug, title, summary, content').eq('slug', slug).maybeSingle()
   if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 })
 
+  // Normalize to the {{BRAND}} token before translating — older posts may
+  // still hold a literal brand name baked in from whichever deployment
+  // generated them (see the daily-blog cron's own fix for the same root
+  // cause). Translating a bad source verbatim was also producing garbled,
+  // mixed-script renderings of the brand name in some languages.
+  const sourceTitle = normalizeBrandToToken(post.title)
+  const sourceSummary = post.summary ? normalizeBrandToToken(post.summary) : ''
+  const sourceContent = post.content ? normalizeBrandToToken(post.content) : ''
   const raw = await callAI(
-    `Translate the given JSON blog post fields into ${lang.name}. Keep the same meaning, tone, and paragraph structure exactly, including any paragraph that is only "## Section Title" — translate the heading text but keep the "## " prefix so it still renders as a heading. Respond with ONLY a JSON object with the same keys (title, summary, content), no markdown fences, no preamble.`,
-    JSON.stringify({ title: post.title, summary: post.summary, content: post.content })
+    `Translate the given blog post fields into ${lang.name}. Keep the same meaning, tone, and paragraph structure exactly, including any paragraph that is only "## Section Title" (translate the heading text but keep the "## " prefix so it still renders as a heading), any highlight callout (keep the "> " prefix on each line), and any FAQ pair (keep the "Q: " and "A: " prefixes on their respective lines, translating only the text after each prefix). If the text contains the literal token {{BRAND}} (with double curly braces), copy it through completely unchanged, do not translate, transliterate, or modify it in any way. Do not introduce the em dash character anywhere in the translation, even if it reads naturally in the target language, use a comma or two sentences instead.
+
+Respond in EXACTLY this plain-text format, no markdown fences, no preamble, nothing before "TITLE:" and nothing after the content:
+TITLE: the translated title
+SUMMARY: the translated summary
+CONTENT:
+the translated content, with a genuine blank line between paragraphs
+
+Do not use JSON. Do not wrap anything in quotes. Do not escape anything.`,
+    `TITLE: ${sourceTitle}\nSUMMARY: ${sourceSummary}\nCONTENT:\n${sourceContent}`
   )
-  const translated = raw ? parseJson(raw) : null
+  const translated = raw ? parseDelimited(raw) : null
   if (!translated?.title) {
     return NextResponse.json({ error: 'Translation failed for both providers.' }, { status: 502 })
   }
 
-  const result = { title: translated.title, summary: translated.summary ?? post.summary, content: translated.content ?? post.content }
+  // Store as the {{BRAND}} token (normalized again as a safety net in case
+  // the model didn't preserve it), resolved to the viewing domain's brand
+  // name only when actually returned below — same convention as every
+  // other piece of UI copy in this app.
+  const stored = {
+    title: stripEmDash(normalizeBrandToToken(translated.title)),
+    summary: stripEmDash(normalizeBrandToToken(translated.summary ?? post.summary ?? '')),
+    content: stripEmDash(normalizeBrandToToken(translated.content ?? post.content ?? '')),
+  }
   await supabaseAdmin.from('blog_translations').upsert(
-    { blog_slug: slug, language: lang.id, ...result },
+    { blog_slug: slug, language: lang.id, ...stored },
     { onConflict: 'blog_slug,language' }
   )
-  return NextResponse.json(result)
+  return NextResponse.json({
+    title: applyBrandToText(stored.title),
+    summary: applyBrandToText(stored.summary),
+    content: applyBrandToText(stored.content),
+  })
 }

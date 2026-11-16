@@ -15,6 +15,10 @@ type BrandConfig = {
   name: string
   fallbackUrl: string
   supportEmail: string
+  // The introduction video shown on the landing page. The video itself
+  // carries its brand's name on screen, so it is only set for the brand it
+  // was made for; the other brand's homepage simply has no video section.
+  introVideo: { src: string; poster: string } | null
 }
 
 const BRANDS: Record<BrandId, BrandConfig> = {
@@ -22,11 +26,13 @@ const BRANDS: Record<BrandId, BrandConfig> = {
     name: 'KalaSetu',
     fallbackUrl: 'https://kalasetu-six.vercel.app',
     supportEmail: 'hello@hastkatha.in',
+    introVideo: { src: '/intro-video.mp4', poster: '/intro-video-poster.jpg' },
   },
   hastkatha: {
     name: 'Hastkatha',
     fallbackUrl: 'https://hastkatha.vercel.app',
     supportEmail: 'hello@hastkatha.in',
+    introVideo: null,
   },
 }
 

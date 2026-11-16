@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import HeaderAuthStatus from '@/components/HeaderAuthStatus'
@@ -88,7 +89,7 @@ export default function RootLayout({
           overflowX: 'auto',
         }}>
           {/* Logo */}
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
               width: 36,
               height: 36,
@@ -115,7 +116,7 @@ export default function RootLayout({
               </div>
               <HeaderTagline />
             </div>
-          </a>
+          </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <LanguageSwitcher />

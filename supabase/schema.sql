@@ -1,5 +1,12 @@
--- Hastkatha — Phase 1 schema
--- Run this in Supabase: Dashboard -> SQL Editor -> New query -> paste -> Run.
+-- Hastkatha — Phase 1 schema (HISTORICAL SNAPSHOT — DO NOT RUN ON A LIVE OR
+-- PRODUCTION DATABASE). Its open "using (true)" policies on products are
+-- superseded by supabase/002_auth_and_profiles.sql, which every real
+-- environment must already have applied. Running this file alone, or out of
+-- order, on any database that matters would leave products world-writable
+-- with no auth check. It's kept only as a record of where the schema
+-- started; treat supabase/002_auth_and_profiles.sql onward, run in numeric
+-- order, as the only correct way to build a real environment from scratch.
+
 -- No auth wired up yet, so this stays open (single-artisan pilot). Once login
 -- is added, come back and add RLS policies scoped to auth.uid().
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
@@ -88,9 +89,9 @@ export default function LoginPage() {
             <span aria-hidden="true">⚠</span> {shownError}
           </p>
         )}
-        <a href="/forgot-password" style={{ ...linkStyle, display: 'inline-block', fontSize: 13, marginTop: shownError ? 12 : 4 }}>
+        <Link href="/forgot-password" style={{ ...linkStyle, display: 'inline-block', fontSize: 13, marginTop: shownError ? 12 : 4 }}>
           {t('login.forgotPassword')}
-        </a>
+        </Link>
       </div>
 
       <button onClick={handleSubmit} disabled={submitting} style={primaryButtonStyle(submitting)}>
@@ -98,7 +99,7 @@ export default function LoginPage() {
       </button>
 
       <p style={{ fontSize: 14, color: 'var(--ks-muted)', marginTop: 20, textAlign: 'center' }}>
-        {t('login.newHere')} <a href="/signup" style={linkStyle}>{t('login.createAccount')}</a>
+        {t('login.newHere')} <Link href="/signup" style={linkStyle}>{t('login.createAccount')}</Link>
       </p>
     </div>
   )

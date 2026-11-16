@@ -24,6 +24,11 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.method !== 'GET') return
 
+  // Video is fetched with byte-range requests (206 partial responses),
+  // which the Cache API refuses to store, and a multi-MB file has no
+  // business in this cache anyway. Let the browser handle it directly.
+  if (event.request.destination === 'video' || url.pathname.endsWith('.mp4') || event.request.headers.has('range')) return
+
   // Next.js build output under /_next/static/ is content-hashed — a new
   // deploy ships new filenames, so the old cached ones are simply never
   // requested again. Safe (and fast) to cache-first these.

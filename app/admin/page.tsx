@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import RequireAdmin from '@/components/RequireAdmin'
 import { BRAND } from '@/lib/brand'
 
@@ -14,24 +15,24 @@ function AdminHubInner() {
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-        <a href="/admin/operations" style={{ ...cardStyle, borderTop: '3px solid var(--ks-clay)' }}>
+        <Link href="/admin/operations" style={{ ...cardStyle, borderTop: '3px solid var(--ks-clay)' }}>
           <div style={iconWrapStyle}>👥</div>
           <div style={cardTitleStyle}>Artisans &amp; Content</div>
           <div style={cardDescStyle}>Manage users, subscription tiers, blog posts, and schemes/opportunities.</div>
           <div style={cardLinkStyle}>Open <span aria-hidden="true">→</span></div>
-        </a>
-        <a href="/admin/analytics" style={{ ...cardStyle, borderTop: '3px solid var(--ks-jade)' }}>
+        </Link>
+        <Link href="/admin/analytics" style={{ ...cardStyle, borderTop: '3px solid var(--ks-jade)' }}>
           <div style={iconWrapStyle}>📊</div>
           <div style={cardTitleStyle}>Analytics &amp; Revenue</div>
           <div style={cardDescStyle}>Usage stats, active artisans, subscription tier breakdown.</div>
           <div style={cardLinkStyle}>Open <span aria-hidden="true">→</span></div>
-        </a>
-        <a href="/admin/saathi" style={{ ...cardStyle, borderTop: '3px solid var(--ks-indigo)' }}>
+        </Link>
+        <Link href="/admin/saathi" style={{ ...cardStyle, borderTop: '3px solid var(--ks-indigo)' }}>
           <div style={iconWrapStyle}>🤝</div>
           <div style={cardTitleStyle}>{BRAND.name} Saathi</div>
           <div style={cardDescStyle}>Referrals, ₹100 rewards, KalaPoints issued/redeemed, and flagged referral activity.</div>
           <div style={cardLinkStyle}>Open <span aria-hidden="true">→</span></div>
-        </a>
+        </Link>
       </div>
     </div>
   )

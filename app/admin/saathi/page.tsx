@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import RequireAdmin from '@/components/RequireAdmin'
@@ -76,7 +77,7 @@ function AdminSaathiInner() {
   return (
     <div>
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--ks-earth)', marginBottom: 4 }}>{BRAND.name} Saathi</h1>
-      <a href="/admin" style={{ fontSize: 12.5, color: 'var(--ks-indigo)', textDecoration: 'none' }}>← Admin home</a>
+      <Link href="/admin" style={{ fontSize: 12.5, color: 'var(--ks-indigo)', textDecoration: 'none' }}>← Admin home</Link>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, margin: '20px 0 26px' }}>
         <Stat label="Total Saathis" n={totals.saathis} />

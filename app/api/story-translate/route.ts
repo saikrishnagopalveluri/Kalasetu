@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   if (cached) return NextResponse.json(cached)
 
   const raw = await callAI(
-    `Translate the given JSON story fields into ${lang.name}. Preserve meaning, cultural context, tone, and paragraph structure exactly. Do NOT translate proper names, place names, or traditional craft/technique-specific terms (e.g. a named weave, dye, or motif) — keep those as written in the original, transliterated only if the target script requires it to be readable. Respond with ONLY a JSON object with the same keys (title, content), no markdown fences, no preamble.`,
+    `Translate the given JSON story fields fully into ${lang.name} — every word of ordinary prose (nouns, verbs, adjectives, common craft vocabulary like "loom", "thread", "weaving", "skill", "dye") must be translated into ${lang.name}, written in ${lang.name}'s own script. The ONLY exceptions, left exactly as in the original: (1) a person's proper name, (2) a place name, (3) the specific, one-word or short name of a named traditional weave, dye, or motif technique (e.g. "Ikat", "Bandhani", "Ajrakh") that has no natural ${lang.name} equivalent. Do not leave any other word in the source language or script — a translation with stray untranslated common words is a failed translation. Respond with ONLY a JSON object with the same keys (title, content), no markdown fences, no preamble.`,
     JSON.stringify({ title: story.title, content: story.content })
   )
   const translated = raw ? parseJson(raw) : null

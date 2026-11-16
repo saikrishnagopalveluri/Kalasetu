@@ -113,7 +113,9 @@ function UpSkillInner() {
                     </button>
                     {open && (
                       <div style={{ padding: '0 15px 16px 51px' }}>
-                        {m.body_key && <p style={{ fontSize: 13, color: 'var(--ks-earth)', lineHeight: 1.65, marginBottom: 12 }}>{t(m.body_key)}</p>}
+                        {m.body_key && t(m.body_key).split('\n\n').map((para, i) => (
+                          <p key={i} style={{ fontSize: 13, color: 'var(--ks-earth)', lineHeight: 1.65, marginBottom: 12 }}>{para}</p>
+                        ))}
                         <button
                           onClick={() => toggleComplete(m.id)}
                           disabled={saving === m.id}

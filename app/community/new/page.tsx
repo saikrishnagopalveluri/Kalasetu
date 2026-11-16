@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useId, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
@@ -8,18 +9,7 @@ import { useLanguage } from '@/lib/LanguageProvider'
 import { LANGUAGES } from '@/lib/languages'
 import { useStoryEvaluation, type StoryScores } from '@/lib/storyEvaluation'
 import type { TranslationKey } from '@/lib/translations'
-
-const CATEGORIES: { value: string; key: TranslationKey }[] = [
-  { value: 'My Craft Story', key: 'community.category.craftStory' },
-  { value: 'How I Make My Products', key: 'community.category.howIMake' },
-  { value: 'My Village / Tradition', key: 'community.category.village' },
-  { value: 'Materials & Techniques', key: 'community.category.materials' },
-  { value: 'Festival Stories', key: 'community.category.festival' },
-  { value: 'Behind the Product', key: 'community.category.behind' },
-  { value: 'My Business Journey', key: 'community.category.business' },
-  { value: 'Tips for Other Artisans', key: 'community.category.tips' },
-  { value: 'Traditional Craft Knowledge', key: 'community.category.traditional' },
-]
+import { STORY_CATEGORIES as CATEGORIES } from '@/lib/storyCategories'
 
 const SCORE_ROWS: { key: keyof StoryScores; labelKey: TranslationKey }[] = [
   { key: 'storytelling', labelKey: 'community.score.storytelling' },
@@ -32,15 +22,6 @@ const SCORE_ROWS: { key: keyof StoryScores; labelKey: TranslationKey }[] = [
 ]
 
 const PUBLISH_THRESHOLD = 8
-
-function slugify(text: string): string {
-  return text.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')
-}
-
-function readingTime(content: string): number {
-  const words = content.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(1, Math.round(words / 200))
-}
 
 function StoryComposerInner() {
   const { user, profile } = useAuth()
@@ -67,28 +48,33 @@ function StoryComposerInner() {
   }
 
   async function handlePublish() {
-    if (!user || !scores) return
+    if (!user) return
     setPublishing(true)
     setPublishError('')
-    const slug = `${slugify(title)}-${Date.now().toString(36)}`
-    const { error: insertError } = await supabase!.from('stories').insert({
-      author_id: user.id,
-      slug, title, content, language, category,
-      status: 'PUBLISHED',
-      ai_scores: scores,
-      ai_feedback: scores.feedback,
-      reading_time_minutes: readingTime(content),
-      published_at: new Date().toISOString(),
-    })
-    setPublishing(false)
-    if (insertError) { setPublishError(t('community.publishFailed')); return }
-    setPublished(true)
 
     const { data: sessionData } = await supabase!.auth.getSession()
     const accessToken = sessionData.session?.access_token
-    if (accessToken) {
-      fetch('/api/story-publish-hook', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }).catch(() => {})
+    if (!accessToken) { setPublishing(false); setPublishError(t('community.publishFailed')); return }
+
+    // The score shown on screen is only ever a preview — the server
+    // re-evaluates the story itself and is the only thing that can actually
+    // set it to PUBLISHED, so there's nothing for the client to fake here.
+    const res = await fetch('/api/story-publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ title, content, language, category }),
+    })
+    setPublishing(false)
+    if (!res.ok) { setPublishError(t('community.publishFailed')); return }
+    const result = await res.json()
+    if (!result.published) {
+      // Server re-scored it below threshold (rare — the preview already
+      // showed this) — surface the server's own score/feedback so the UI
+      // stays consistent with what actually happened.
+      setScores(result.scores)
+      return
     }
+    setPublished(true)
   }
 
   if (published) {
@@ -98,7 +84,7 @@ function StoryComposerInner() {
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 20, color: 'var(--ks-earth)', marginBottom: 10 }}>
           {t('community.publishedTitle')}
         </h1>
-        <a href="/community" style={{ color: 'var(--ks-indigo)', fontWeight: 600, fontSize: 14 }}>{t('community.viewCommunity')}</a>
+        <Link href="/community" style={{ color: 'var(--ks-indigo)', fontWeight: 600, fontSize: 14 }}>{t('community.viewCommunity')}</Link>
       </div>
     )
   }

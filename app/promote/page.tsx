@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useId, useState } from 'react'
 import { useAI } from '@/lib/useAI'
 import { supabase } from '@/lib/supabase'
@@ -88,7 +89,7 @@ function PromotePageInner() {
         <div style={{ background: 'var(--ks-ivory)', border: '1px dashed var(--ks-border)', borderRadius: 12, padding: '28px 18px', textAlign: 'center' }}>
           <p style={{ fontSize: 14, color: 'var(--ks-muted)', lineHeight: 1.55 }}>
             {t('promote.noProducts')}{' '}
-            <a href="/content" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('promote.createFirst')}</a>.
+            <Link href="/content" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('promote.createFirst')}</Link>.
           </p>
         </div>
       </div>

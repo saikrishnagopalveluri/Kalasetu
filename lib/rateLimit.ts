@@ -29,7 +29,24 @@ export function isRateLimited(key: string, max: number, windowMs: number): boole
   return entry.count > max
 }
 
+// x-forwarded-for is a chain a client can prepend arbitrary values to —
+// taking the first entry (as this used to) lets a caller spoof a fresh key
+// on every request and defeat the limiter entirely. Vercel's edge appends
+// the real connecting IP as the LAST entry in that chain, and separately
+// sets x-real-ip to the same trustworthy value — prefer that.
 export function clientKey(request: Request): string {
+  const realIp = request.headers.get('x-real-ip')
+  if (realIp) return realIp.trim()
   const forwarded = request.headers.get('x-forwarded-for')
-  return forwarded ? forwarded.split(',')[0].trim() : 'unknown'
+  if (!forwarded) return 'unknown'
+  const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean)
+  return parts[parts.length - 1] ?? 'unknown'
+}
+
+// For authenticated routes, the caller's user id is a far stronger rate-limit
+// key than any IP — not spoofable (it's independently verified by
+// requireUser before this is ever called), and correctly separates users
+// who share a NAT/office IP instead of throttling them as one.
+export function userKey(userId: string): string {
+  return `user:${userId}`
 }

@@ -58,6 +58,17 @@ export default function LanguageSwitcher() {
           @media (max-width: 420px) {
             .ks-lang-btn { padding: 11px 8px !important; font-size: 11px !important; }
           }
+          /* At very narrow widths (worst case: RTL scripts + the header's
+             other content), 3 quick-pick buttons plus the header's own
+             logo/login-link pushed the login link out of view with no
+             visible sign the header could be scrolled to reach it. Dropping
+             to 1 quick-pick + "more languages" here removes the overflow at
+             its source instead of relying on the header's horizontal-scroll
+             safety net. */
+          @media (max-width: 380px) {
+            .ks-lang-switcher button:nth-of-type(2),
+            .ks-lang-switcher button:nth-of-type(3) { display: none; }
+          }
         `}</style>
       </div>
 

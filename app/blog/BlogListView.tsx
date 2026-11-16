@@ -126,7 +126,7 @@ export default function BlogListView({ posts }: { posts: BlogSummary[] }) {
                   {p.image_url && (
                     <img
                       src={p.image_url}
-                      alt=""
+                      alt={p.title}
                       loading="lazy"
                       width={88}
                       height={88}

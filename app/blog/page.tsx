@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { applyBrandToText } from '@/lib/applyBrand'
 import BlogListView, { type BlogSummary } from './BlogListView'
 
 // Server-rendered on purpose: the post list used to be fetched client-side
@@ -14,7 +15,14 @@ async function getPosts(): Promise<BlogSummary[]> {
     .from('blogs')
     .select('slug, title, summary, category, created_at, image_url')
     .order('created_at', { ascending: false })
-  return data ?? []
+  // Older posts may still hold a literal brand name baked in from whichever
+  // deployment originally generated them (both brands share one database) —
+  // resolved to the viewing domain's own brand at render time.
+  return (data ?? []).map((post) => ({
+    ...post,
+    title: applyBrandToText(post.title),
+    summary: post.summary ? applyBrandToText(post.summary) : post.summary,
+  }))
 }
 
 export default async function BlogListPage() {

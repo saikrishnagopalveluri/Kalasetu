@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/requireUser'
+import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { generateImage, AllProvidersFailedError } from '@/lib/imageProviders'
 
 // Visual language per inspiration theme — feeds the image model, kept separate
@@ -18,8 +19,13 @@ const THEME_VISUALS: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireUser(request)
-    if (!auth.ok) {
+    if (!auth.ok || !auth.userId) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+    }
+    // Image generation is the most expensive call class here — a tighter
+    // cap than the text AI routes.
+    if (isRateLimited(userKey(auth.userId), 10, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 })
     }
 
     const { craftType, theme, notes } = await request.json()

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   if (!auth.ok || !auth.userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   const userId = auth.userId
 
-  let { data: profile } = await supabaseAdmin.from('artisan_profiles').select('referral_code, name').eq('id', userId).maybeSingle()
+  const { data: profile } = await supabaseAdmin.from('artisan_profiles').select('referral_code, name').eq('id', userId).maybeSingle()
   let referralCode = profile?.referral_code ?? null
   if (!referralCode) {
     referralCode = generateCode(profile?.name ?? '')

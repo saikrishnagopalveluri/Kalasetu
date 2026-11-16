@@ -23,6 +23,7 @@ export default function ProductTour() {
       { popover: { title: t('tour.welcome.title'), description: t('tour.welcome.desc') } },
       { element: '#tour-greeting', popover: { title: t('tour.progress.title'), description: t('tour.progress.desc'), side: 'bottom', align: 'start' } },
       { element: '#tour-challenges', popover: { title: t('tour.challenges.title'), description: t('tour.challenges.desc'), side: 'bottom', align: 'start' } },
+      { element: '#tour-saathi-banner', popover: { title: t('saathi.ctaTitle'), description: t('saathi.ctaDesc'), side: 'bottom', align: 'start' } },
       { element: '#tour-actions', popover: { title: t('tour.actions.title'), description: t('tour.actions.desc'), side: 'top', align: 'start' } },
       { element: '#tour-nav-create', popover: { title: t('tour.navCreate.title'), description: t('tour.navCreate.desc'), side: 'top', align: 'center' } },
       { element: '#tour-nav-community', popover: { title: t('tour.navCommunity.title'), description: t('tour.navCommunity.desc'), side: 'top', align: 'center' } },

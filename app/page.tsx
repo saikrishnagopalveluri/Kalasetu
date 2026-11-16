@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase, supabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
@@ -39,10 +40,10 @@ const GROW_ACTIONS: QuickAction[] = [
   { Icon: IconPricing, titleKey: 'action.pricing.title', descKey: 'action.pricing.desc', href: '/pricing', accent: '#D4A017' },
 ]
 
-const DEMO_RECENT = [
-  { emoji: '📸', label: 'Photoshoot', product: 'Jamdani Saree', preset: 'Studio', time: '2 hours ago' },
-  { emoji: '📢', label: 'Instagram post', product: 'Kalamkari Dupatta', preset: 'Festival', time: 'Yesterday' },
-  { emoji: '✍️', label: 'Description', product: 'Filigree Necklace', preset: null, time: '2 days ago' },
+const DEMO_RECENT: { emoji: string; labelKey: TranslationKey; product: string; preset: string | null; timeKey: TranslationKey; timeN?: number }[] = [
+  { emoji: '📸', labelKey: 'home.demo.photoshoot', product: 'Jamdani Saree', preset: 'Studio', timeKey: 'time.hoursAgo', timeN: 2 },
+  { emoji: '📢', labelKey: 'home.demo.instagramPost', product: 'Kalamkari Dupatta', preset: 'Festival', timeKey: 'time.yesterday' },
+  { emoji: '✍️', labelKey: 'home.demo.description', product: 'Filigree Necklace', preset: null, timeKey: 'time.daysAgo', timeN: 2 },
 ]
 
 const CONTENT_TYPE_META: Record<string, { emoji: string; labelKey: TranslationKey }> = {
@@ -291,9 +292,46 @@ function HomePageContent() {
         </div>
       )}
 
+      {/* ── Invite & Earn banner ────────────────────────── */}
+      {/* Always visible, not gated on artisansEmpowered > 0 — this is the
+          primary discovery surface for the Saathi referral program, and
+          most artisans start at zero empowerments. Gating it on a nonzero
+          count would hide the entire feature from exactly the people who
+          haven't used it yet. */}
+      <a
+        id="tour-saathi-banner"
+        href="/saathi"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
+          background: 'var(--ks-clay)', borderRadius: 14, padding: '16px 18px',
+          marginBottom: 20, boxShadow: '0 4px 14px rgba(196,85,45,0.25)',
+        }}
+      >
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <IconSaathi size={22} style={{ color: '#fff' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+            {t('saathi.ctaTitle')}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
+            {t('saathi.ctaDesc')}
+          </div>
+        </div>
+        <span style={{
+          flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ks-clay)',
+          background: '#fff', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap',
+        }}>
+          {t('saathi.inviteArtisan')}
+        </span>
+      </a>
+
       {/* ── Impact + wallet + learning nudge ────────────── */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
-        <a href="/wallet" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
+        <Link href="/wallet" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
           <IconWallet size={18} style={{ color: 'var(--ks-clay)' }} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>
@@ -301,23 +339,21 @@ function HomePageContent() {
             </div>
             <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.kalaPoints')}</div>
           </div>
-        </a>
-        {!!artisansEmpowered && (
-          <a href="/saathi" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
-            <IconSaathi size={18} style={{ color: 'var(--ks-clay)' }} />
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>{artisansEmpowered}</div>
-              <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.artisansEmpowered')}</div>
-            </div>
-          </a>
-        )}
-        <a href="/upskill" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
+        </Link>
+        <Link href="/saathi" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
+          <IconSaathi size={18} style={{ color: 'var(--ks-clay)' }} />
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>{artisansEmpowered ?? 0}</div>
+            <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.artisansEmpowered')}</div>
+          </div>
+        </Link>
+        <Link href="/upskill" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
           <IconUpskill size={18} style={{ color: 'var(--ks-clay)' }} />
           <div>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ks-earth)' }}>{t('home.continueLearning')}</div>
             <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('nav.upskill')} →</div>
           </div>
-        </a>
+        </Link>
       </div>
 
       {/* ── Quick actions ────────────────────────────────── */}
@@ -437,9 +473,12 @@ function HomePageContent() {
 
       {recentToShow === null ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {DEMO_RECENT.map((item) => (
-            <RecentRowCard key={item.product + item.time} emoji={item.emoji} title={item.product} subtitle={`${item.label} · ${item.time}`} preset={item.preset} />
-          ))}
+          {DEMO_RECENT.map((item) => {
+            const time = item.timeN ? t(item.timeKey).replace('{n}', String(item.timeN)) : t(item.timeKey)
+            return (
+              <RecentRowCard key={item.product} emoji={item.emoji} title={item.product} subtitle={`${t(item.labelKey)} · ${time}`} preset={item.preset} />
+            )
+          })}
         </div>
       ) : recentToShow.length === 0 ? (
         <div className="ks-lattice" style={{

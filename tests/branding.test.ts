@@ -65,7 +65,10 @@ describe('translations.ts: {{BRAND}} substitution', () => {
 
 describe('branding: no hardcoded brand name outside lib/brand.ts', () => {
   const SCAN_ROOTS = ['app', 'components', 'lib']
-  const EXEMPT_FILES = new Set(['lib/brand.ts'])
+  // lib/applyBrand.ts legitimately needs to know both literal brand names,
+  // the same way lib/brand.ts does — it's what resolves/normalizes them
+  // everywhere else, not a place a brand name leaked into by accident.
+  const EXEMPT_FILES = new Set(['lib/brand.ts', 'lib/applyBrand.ts'])
   const repoRoot = path.resolve(__dirname, '..')
 
   function walk(dir: string): string[] {

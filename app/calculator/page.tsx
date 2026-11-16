@@ -54,7 +54,7 @@ function CalculatorInner() {
         <p style={sectionLabel}>{t('calculator.labour')}</p>
         <Row>
           <Field label={t('calculator.hoursWorked')} htmlFor={ids.hours}>
-            <input id={ids.hours} type="number" inputMode="decimal" min="0" value={labourHours} onChange={(e) => setLabourHours(e.target.value)} placeholder="e.g. 20" style={inputStyle} />
+            <input id={ids.hours} type="number" inputMode="decimal" min="0" value={labourHours} onChange={(e) => setLabourHours(e.target.value)} placeholder={t('calculator.hoursPlaceholder')} style={inputStyle} />
           </Field>
           <Field label={t('calculator.numberOfPeople')} htmlFor={ids.people}>
             <input id={ids.people} type="number" inputMode="numeric" min="1" value={labourers} onChange={(e) => setLabourers(e.target.value)} style={inputStyle} />
@@ -72,10 +72,10 @@ function CalculatorInner() {
         <p style={{ ...sectionLabel, marginTop: 10 }}>{t('calculator.materialsOther')}</p>
         <Row>
           <Field label={t('calculator.rawMaterialCost')} htmlFor={ids.material}>
-            <input id={ids.material} type="number" inputMode="decimal" min="0" value={materialCost} onChange={(e) => setMaterialCost(e.target.value)} placeholder="e.g. 800" style={inputStyle} />
+            <input id={ids.material} type="number" inputMode="decimal" min="0" value={materialCost} onChange={(e) => setMaterialCost(e.target.value)} placeholder={t('calculator.materialPlaceholder')} style={inputStyle} />
           </Field>
           <Field label={t('calculator.packagingTransport')} htmlFor={ids.other}>
-            <input id={ids.other} type="number" inputMode="decimal" min="0" value={otherCosts} onChange={(e) => setOtherCosts(e.target.value)} placeholder="e.g. 100" style={inputStyle} />
+            <input id={ids.other} type="number" inputMode="decimal" min="0" value={otherCosts} onChange={(e) => setOtherCosts(e.target.value)} placeholder={t('calculator.packagingPlaceholder')} style={inputStyle} />
           </Field>
         </Row>
 

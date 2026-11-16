@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
@@ -205,7 +206,7 @@ function SignupFormInner() {
       </button>
 
       <p style={{ fontSize: 14, color: 'var(--ks-muted)', marginTop: 20, textAlign: 'center' }}>
-        {t('signup.alreadyHaveAccount')} <a href="/login" style={linkStyle}>{t('signup.logIn')}</a>
+        {t('signup.alreadyHaveAccount')} <Link href="/login" style={linkStyle}>{t('signup.logIn')}</Link>
       </p>
     </div>
   )

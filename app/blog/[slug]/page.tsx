@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BlogDetailView, { type Blog } from './BlogDetailView'
 import { BRAND } from '@/lib/brand'
+import { applyBrandToText } from '@/lib/applyBrand'
+import { BLOG_AUTHOR } from '@/lib/blogAuthor'
 
 export const revalidate = 3600
 
@@ -9,8 +11,12 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || BRAND.fallbackUrl
 
 async function getPost(slug: string): Promise<(Blog & { created_at: string }) | null> {
   if (!supabase) return null
-  const { data } = await supabase.from('blogs').select('slug, title, content, category, created_at, image_url').eq('slug', slug).maybeSingle()
-  return data
+  const { data } = await supabase.from('blogs').select('slug, title, content, category, created_at, image_url, image_credit').eq('slug', slug).maybeSingle()
+  if (!data) return null
+  // Older posts may still hold a literal brand name baked in from whichever
+  // deployment originally generated them (both brands share one database) —
+  // resolved to the viewing domain's own brand at render time.
+  return { ...data, title: applyBrandToText(data.title), content: applyBrandToText(data.content) }
 }
 
 export default async function BlogDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -32,7 +38,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
     datePublished: post.created_at,
     dateModified: post.created_at,
     ...(post.image_url ? { image: post.image_url } : {}),
-    author: { '@type': 'Organization', name: BRAND.name, url: BASE_URL },
+    author: { '@type': 'Person', name: BLOG_AUTHOR },
     publisher: {
       '@type': 'Organization',
       name: BRAND.name,

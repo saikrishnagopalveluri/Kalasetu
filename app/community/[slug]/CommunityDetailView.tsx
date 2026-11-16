@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import { useLanguage } from '@/lib/LanguageProvider'
 import { LANGUAGES, LANGUAGE_NAMES } from '@/lib/languages'
+import { STORY_CATEGORIES } from '@/lib/storyCategories'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal'
 
 export type Story = {
   id: string
@@ -27,11 +30,22 @@ export type Story = {
 
 export default function CommunityDetailView({ story }: { story: Story }) {
   const { user } = useAuth()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const router = useRouter()
 
-  const [viewLanguage, setViewLanguage] = useState(story.language)
+  // Defaults to the viewer's own site language, not the story's original
+  // authored language — a Tamil-UI reader opening a Telugu-authored story
+  // should see it in Tamil immediately, not have to click "View in Tamil".
+  // A manual click on one of the language buttons below pins the choice so
+  // it doesn't get overridden if the site language changes later.
+  const [viewLanguage, setViewLanguage] = useState<string>(language)
+  const userPickedLanguage = useRef(false)
   const [translated, setTranslated] = useState<{ title: string; content: string } | null>(null)
   const [translating, setTranslating] = useState(false)
+
+  useEffect(() => {
+    if (!userPickedLanguage.current) setViewLanguage(language)
+  }, [language])
 
   const [liked, setLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(story.likes_count)
@@ -39,6 +53,10 @@ export default function CommunityDetailView({ story }: { story: Story }) {
   const [ratingSum, setRatingSum] = useState(story.rating_sum)
   const [ratingCount, setRatingCount] = useState(story.rating_count)
   const [copied, setCopied] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const isOwnStory = !!user && user.id === story.author_id
 
   useEffect(() => {
     if (!supabase || !user) return
@@ -88,6 +106,16 @@ export default function CommunityDetailView({ story }: { story: Story }) {
     setMyRating(stars)
   }
 
+  // RLS scopes this to the caller's own stories (auth.uid() = author_id,
+  // see supabase/031_community_stories.sql) — same trust model as every
+  // other "delete my own thing" action in this app (products, achievements).
+  async function handleDelete() {
+    if (!supabase) return
+    setDeleting(true)
+    await supabase.from('stories').delete().eq('id', story.id)
+    router.push('/community')
+  }
+
   function handleShare() {
     const url = window.location.href
     if (navigator.share) {
@@ -109,7 +137,7 @@ export default function CommunityDetailView({ story }: { story: Story }) {
         display: 'inline-block', fontSize: 10, fontWeight: 700, color: 'var(--ks-clay)',
         textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8,
       }}>
-        {story.category}
+        {t(STORY_CATEGORIES.find((c) => c.value === story.category)?.key ?? 'community.category.craftStory')}
       </span>
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5.5vw, 30px)', color: 'var(--ks-earth)', marginBottom: 14, lineHeight: 1.2 }}>
         {displayTitle}
@@ -139,7 +167,7 @@ export default function CommunityDetailView({ story }: { story: Story }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 22, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 11.5, color: 'var(--ks-muted)', marginRight: 4 }}>{t('community.viewIn')}</span>
         {[story.language, ...LANGUAGES.filter((l) => l.id !== story.language).map((l) => l.id).slice(0, 4)].map((id) => (
-          <button key={id} type="button" onClick={() => setViewLanguage(id)} aria-pressed={viewLanguage === id} style={{
+          <button key={id} type="button" onClick={() => { userPickedLanguage.current = true; setViewLanguage(id) }} aria-pressed={viewLanguage === id} style={{
             background: viewLanguage === id ? 'var(--ks-indigo)' : '#fff', color: viewLanguage === id ? '#fff' : 'var(--ks-earth)',
             border: `1px solid ${viewLanguage === id ? 'var(--ks-indigo)' : 'var(--ks-border)'}`,
             borderRadius: 999, padding: '5px 11px', fontSize: 11.5, fontWeight: 500, cursor: 'pointer',
@@ -176,7 +204,7 @@ export default function CommunityDetailView({ story }: { story: Story }) {
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n} type="button" onClick={() => handleRate(n)} disabled={!user}
-              aria-label={`${n} star`}
+              aria-label={t('community.starAriaLabel').replace('{n}', String(n))}
               style={{ background: 'none', border: 'none', fontSize: 19, cursor: user ? 'pointer' : 'default', padding: 2, color: myRating && n <= myRating ? 'var(--ks-turmeric)' : 'var(--ks-border)' }}
             >
               ★
@@ -187,12 +215,35 @@ export default function CommunityDetailView({ story }: { story: Story }) {
 
         <button type="button" onClick={handleShare} style={{
           display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid var(--ks-border)',
-          borderRadius: 999, padding: '9px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ks-earth)', cursor: 'pointer', marginLeft: 'auto',
+          borderRadius: 999, padding: '9px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ks-earth)', cursor: 'pointer',
+          marginLeft: isOwnStory ? 0 : 'auto',
         }}>
           <span aria-hidden="true">🔗</span> {copied ? t('common.copied') : t('community.share')}
         </button>
+
+        {isOwnStory && (
+          <button
+            type="button" onClick={() => setConfirmingDelete(true)} disabled={deleting}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid var(--ks-clay)',
+              borderRadius: 999, padding: '9px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ks-clay)',
+              cursor: 'pointer', marginLeft: 'auto',
+            }}
+          >
+            {t('profile.remove')}
+          </button>
+        )}
       </div>
       {!user && <p style={{ fontSize: 12, color: 'var(--ks-muted)', marginTop: 10 }}>{t('community.loginToInteract')}</p>}
+
+      {confirmingDelete && (
+        <DeleteConfirmModal
+          title={t('community.deleteStoryTitle')}
+          warning={t('community.deleteStoryWarning')}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => { setConfirmingDelete(false); handleDelete() }}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useAuth } from '@/lib/useAuth'
 import { supabaseConfigured } from '@/lib/supabase'
 import { useLanguage } from '@/lib/LanguageProvider'
@@ -12,7 +13,7 @@ export default function HeaderAuthStatus() {
 
   if (!user) {
     return (
-      <a
+      <Link
         href="/login"
         style={{
           color: 'var(--ks-turmeric)', fontSize: 12, fontWeight: 600,
@@ -20,7 +21,7 @@ export default function HeaderAuthStatus() {
         }}
       >
         {t('header.login')}
-      </a>
+      </Link>
     )
   }
 
@@ -29,16 +30,16 @@ export default function HeaderAuthStatus() {
   return (
     <div style={{ display: 'flex', alignItems: 'center' }}>
       {profile?.is_admin && (
-        <a href="/admin" style={{
+        <Link href="/admin" style={{
           color: 'var(--ks-turmeric)', fontSize: 11, fontWeight: 600, textDecoration: 'none',
           padding: '13px 8px', display: 'inline-flex', alignItems: 'center',
         }}>
-          Admin
-        </a>
+          {t('nav.admin')}
+        </Link>
       )}
       {/* Avatar image stays visually 26px; the link's padding is what
           brings the actual tap target up toward the 44px minimum. */}
-      <a href="/profile" style={{ textDecoration: 'none', padding: 9, display: 'inline-flex' }}>
+      <Link href="/profile" style={{ textDecoration: 'none', padding: 9, display: 'inline-flex' }}>
         {profile?.profile_photo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={profile.profile_photo_url} alt="" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
@@ -52,7 +53,7 @@ export default function HeaderAuthStatus() {
             {initial}
           </div>
         )}
-      </a>
+      </Link>
       <button
         onClick={async () => { await logOut(); window.location.href = '/login' }}
         style={{

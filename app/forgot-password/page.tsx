@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -257,7 +258,7 @@ export default function ForgotPasswordPage() {
       )}
 
       <p style={{ fontSize: 14, color: 'var(--ks-muted)', marginTop: 20, textAlign: 'center' }}>
-        <a href="/login" style={linkStyle}>← {t('forgotPassword.backToLogin')}</a>
+        <Link href="/login" style={linkStyle}>← {t('forgotPassword.backToLogin')}</Link>
       </p>
     </div>
   )

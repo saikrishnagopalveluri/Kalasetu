@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
         '/studio', '/products', '/design', '/calculator', '/content',
         '/profile', '/promote', '/coach', '/catalogue', '/opportunities',
         '/admin', '/api',
+        '/create', '/upskill', '/wallet', '/saathi',
         // Still gated behind RequireAuth — see the /blog un-gating for what
         // it'd take to lift this too.
         '/pricing',

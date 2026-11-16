@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
@@ -106,7 +107,7 @@ function CataloguePageInner() {
   function buildCatalogueData(): CatalogueData {
     return {
       title: labels.title,
-      businessName: profile?.business_name || profile?.name || 'Artisan',
+      businessName: profile?.business_name || profile?.name || t('common.artisanFallback'),
       contactLabel: `${labels.contact}: ${profile?.public_contact_phone || profile?.phone || '-'}`,
       products: selectedProducts.map((p) => ({
         id: p.id,
@@ -148,13 +149,13 @@ function CataloguePageInner() {
       title: labels.title,
       template,
       language,
-      business_name: profile?.business_name || profile?.name || 'Artisan',
+      business_name: profile?.business_name || profile?.name || t('common.artisanFallback'),
       contact_phone: contact || null,
       published: true,
       data: {
         labels,
         products: selectedProducts,
-        artisanName: profile?.name ?? 'Artisan',
+        artisanName: profile?.name ?? t('common.artisanFallback'),
         about: profile?.about ?? null,
         photoUrl: profile?.profile_photo_url ?? null,
       },
@@ -294,7 +295,7 @@ function CataloguePageInner() {
       {products.length === 0 ? (
         <div className="ks-lattice" style={{ backgroundColor: 'var(--ks-ivory)', border: '1px solid var(--ks-border)', borderRadius: 14, padding: '28px 18px', textAlign: 'center' }}>
           <p style={{ fontSize: 14, color: 'var(--ks-earth)', lineHeight: 1.6 }}>
-            {t('catalogue.noProducts')} <a href="/products" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('catalogue.addSomeFirst')}</a>.
+            {t('catalogue.noProducts')} <Link href="/products" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('catalogue.addSomeFirst')}</Link>.
           </p>
         </div>
       ) : (
@@ -511,8 +512,8 @@ function CataloguePageInner() {
               template={template}
               labels={labels}
               products={selectedProducts}
-              businessName={profile?.business_name || profile?.name || 'Artisan'}
-              artisanName={profile?.name ?? 'Artisan'}
+              businessName={profile?.business_name || profile?.name || t('common.artisanFallback')}
+              artisanName={profile?.name ?? t('common.artisanFallback')}
               about={profile?.about ?? null}
               photoUrl={profile?.profile_photo_url ?? null}
               contact={profile?.public_contact_phone || profile?.phone || '-'}

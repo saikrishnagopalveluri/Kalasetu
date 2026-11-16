@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
@@ -11,6 +12,7 @@ import { removeFromStorage } from '@/lib/storageCleanup'
 import { BRAND } from '@/lib/brand'
 import { advanceReferral } from '@/lib/referrals'
 import { IconBadge, IconSaathi, IconWallet } from '@/components/CraftIcons'
+import DeleteConfirmModal from '@/components/DeleteConfirmModal'
 
 type Achievement = { id: string; title: string; issuing_organization: string | null; year: number | null; description: string | null }
 type PortfolioProduct = { id: string; name: string; image_url: string }
@@ -40,6 +42,7 @@ function ProfileInner() {
   const [portfolio, setPortfolio] = useState<PortfolioProduct[]>([])
   const [badges, setBadges] = useState<EarnedBadge[]>([])
   const [myStories, setMyStories] = useState<MyStory[]>([])
+  const [deleteStoryId, setDeleteStoryId] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
 
   const [slug, setSlug] = useState('')
@@ -172,6 +175,14 @@ function ProfileInner() {
   async function handleDeleteAchievement(id: string) {
     await supabase!.from('achievements').delete().eq('id', id)
     setAchievements((prev) => prev.filter((a) => a.id !== id))
+  }
+
+  // RLS already scopes this to the caller's own stories (auth.uid() =
+  // author_id, see supabase/031_community_stories.sql) — no server route
+  // needed, same as the achievement delete right above.
+  async function handleDeleteStory(id: string) {
+    await supabase!.from('stories').delete().eq('id', id)
+    setMyStories((prev) => prev.filter((s) => s.id !== id))
   }
 
   const { checks, completeness } = computeProfileCompleteness({
@@ -308,7 +319,7 @@ function ProfileInner() {
       {portfolio.length === 0 ? (
         <p style={{ fontSize: 13, color: 'var(--ks-muted)', lineHeight: 1.55, marginBottom: 26 }}>
           {t('profile.portfolioEmptyPrefix')}{' '}
-          <a href="/products" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('profile.portfolioEmptyLink')}</a>{' '}
+          <Link href="/products" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('profile.portfolioEmptyLink')}</Link>{' '}
           {t('profile.portfolioEmptySuffix')}
         </p>
       ) : (
@@ -348,21 +359,33 @@ function ProfileInner() {
       {myStories.length === 0 ? (
         <p style={{ fontSize: 13, color: 'var(--ks-muted)', lineHeight: 1.55, marginBottom: 26 }}>
           {t('profile.storiesEmptyPrefix')}{' '}
-          <a href="/community/new" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('profile.storiesEmptyLink')}</a>
+          <Link href="/community/new" style={{ color: 'var(--ks-indigo)', fontWeight: 600 }}>{t('profile.storiesEmptyLink')}</Link>
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 26 }}>
           {myStories.map((s) => (
-            <a key={s.id} href={s.status === 'PUBLISHED' ? `/community/${s.slug}` : undefined} style={{
+            <div key={s.id} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
               background: 'var(--ks-ivory)', border: '1px solid var(--ks-border)', borderRadius: 10, padding: '11px 14px',
-              textDecoration: 'none', cursor: s.status === 'PUBLISHED' ? 'pointer' : 'default',
             }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ks-earth)' }}>{s.title}</span>
+              <a
+                href={s.status === 'PUBLISHED' ? `/community/${s.slug}` : undefined}
+                style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ks-earth)', textDecoration: 'none', cursor: s.status === 'PUBLISHED' ? 'pointer' : 'default', flex: 1, minWidth: 0 }}
+              >
+                {s.title}
+              </a>
               <span style={{ fontSize: 11, color: 'var(--ks-muted)', flexShrink: 0 }}>
                 {s.status === 'PUBLISHED' ? `❤ ${s.likes_count}` : t('profile.storyDraft')}
               </span>
-            </a>
+              <button
+                type="button"
+                onClick={() => setDeleteStoryId(s.id)}
+                aria-label={`${t('profile.remove')}: ${s.title}`}
+                style={{ ...deleteBtn, flexShrink: 0 }}
+              >
+                {t('profile.remove')}
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -370,15 +393,15 @@ function ProfileInner() {
       {/* Impact + wallet */}
       <p style={sectionLabel}>{t('profile.myImpact')}</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 26 }}>
-        <a href="/saathi" style={{
+        <Link href="/saathi" style={{
           display: 'block', background: 'var(--ks-ivory)', border: '1px solid var(--ks-border)', borderRadius: 12,
           padding: '16px 14px', textDecoration: 'none',
         }}>
           <IconSaathi size={20} style={{ color: 'var(--ks-clay)', marginBottom: 8 }} />
           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ks-earth)' }}>{t('profile.saathiDashboard')}</div>
           <div style={{ fontSize: 10.5, color: 'var(--ks-muted)', marginTop: 2 }}>{t('profile.viewImpact')} →</div>
-        </a>
-        <a href="/wallet" style={{
+        </Link>
+        <Link href="/wallet" style={{
           display: 'block', background: 'var(--ks-ivory)', border: '1px solid var(--ks-border)', borderRadius: 12,
           padding: '16px 14px', textDecoration: 'none',
         }}>
@@ -387,7 +410,7 @@ function ProfileInner() {
             {walletBalance === null ? '—' : walletBalance} {t('wallet.pointsUnit')}
           </div>
           <div style={{ fontSize: 10.5, color: 'var(--ks-muted)', marginTop: 2 }}>{t('profile.openWallet')} →</div>
-        </a>
+        </Link>
       </div>
 
       {/* Public page */}
@@ -418,6 +441,15 @@ function ProfileInner() {
           )}
         </div>
       </div>
+
+      {deleteStoryId && (
+        <DeleteConfirmModal
+          title={t('community.deleteStoryTitle')}
+          warning={t('community.deleteStoryWarning')}
+          onCancel={() => setDeleteStoryId(null)}
+          onConfirm={() => { handleDeleteStory(deleteStoryId); setDeleteStoryId(null) }}
+        />
+      )}
     </div>
   )
 }
