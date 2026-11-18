@@ -50,8 +50,16 @@ Respond with ONLY a JSON object, no markdown fences, no preamble, exactly these 
 
 function parseScores(raw: string): StoryScores | null {
   try {
-    const parsed = JSON.parse(raw.replace(/^```json\s*|```\s*$/g, '').trim())
-    if (typeof parsed.overall !== 'number') return null
+    const parsed = JSON.parse(raw.replace(/^```json\\s*|```\\s*$/g, '').trim())
+    const scoreKeys: (keyof StoryScores)[] = [
+      'storytelling', 'clarity', 'authenticity', 'craftRelevance',
+      'culturalContext', 'informationalValue', 'readability', 'overall',
+    ]
+    if (!parsed || typeof parsed !== 'object') return null
+    for (const key of scoreKeys) {
+      if (typeof parsed[key] !== 'number' || parsed[key] < 0 || parsed[key] > 10) return null
+    }
+    if (parsed.feedback !== null && typeof parsed.feedback !== 'string') return null
     return parsed as StoryScores
   } catch {
     return null
