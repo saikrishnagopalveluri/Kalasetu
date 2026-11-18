@@ -91,3 +91,48 @@ describe('generateImage: fallback ordering', () => {
     }
   })
 })
+
+  
+  it('retries Hugging Face once after a cold-model 503', async () => {
+    process.env.HF_API_KEY = 'test-hf-key'
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: async () => JSON.stringify({ estimated_time: 0 }),
+      } as Response)
+      .mockResolvedValueOnce(pngResponse())
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { generateImage } = await import('@/lib/imageProviders')
+    const result = await generateImage({ prompt: 'a test prompt' })
+
+    expect(result.provider).toBe('huggingface')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('falls back from rejected image-to-image input to text-to-image on Hugging Face', async () => {
+    process.env.HF_API_KEY = 'test-hf-key'
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => 'image input rejected',
+      } as Response)
+      .mockResolvedValueOnce(pngResponse())
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { generateImage } = await import('@/lib/imageProviders')
+    const result = await generateImage({
+      prompt: 'a test prompt',
+      refImageDataUrl: 'data:image/png;base64,ZmFrZQ==',
+    })
+
+    expect(result.provider).toBe('huggingface')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const firstBody = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    const secondBody = JSON.parse(fetchMock.mock.calls[1][1].body as string)
+    expect(firstBody.parameters.prompt).toBe('a test prompt')
+    expect(secondBody.inputs).toBe('a test prompt')
+  })
+})
