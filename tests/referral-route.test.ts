@@ -107,7 +107,7 @@ describe('POST /api/referral', () => {
     const response = await POST(request({ action: 'register', code: 'SELF' }))
     expect(await response.json()).toEqual({ ok: true, registered: false })
     expect(builder.insert).not.toHaveBeenCalled()
-  }
+  })
 
   it('does not register a user who already has a referral', async () => {
     const builder = {
