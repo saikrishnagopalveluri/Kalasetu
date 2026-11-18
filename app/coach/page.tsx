@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useFollowingState } from '@/lib/useFollowingState'
 import { useAI } from '@/lib/useAI'
 import RequireAuth from '@/components/RequireAuth'
 import { LANGUAGES } from '@/lib/languages'
@@ -20,10 +21,9 @@ function CoachPageInner() {
   const { t, language: uiLanguage } = useLanguage()
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
-  const [language, setLanguage] = useState<typeof LANGUAGES[number]['id']>(uiLanguage)
+  const [language, setLanguage] = useFollowingState<typeof LANGUAGES[number]['id']>(uiLanguage)
   // See app/content/page.tsx for why this follows the site's own language
   // rather than always starting at English.
-  useEffect(() => { setLanguage(uiLanguage) }, [uiLanguage])
   const { chat, loading, error, clearError } = useAI()
   const bottomRef = useRef<HTMLDivElement>(null)
 

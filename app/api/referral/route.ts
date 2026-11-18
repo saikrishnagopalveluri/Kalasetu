@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { checkAndAwardBadges } from '@/lib/badges'
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
   if (!auth.ok || !auth.userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
   const userId = auth.userId
 
-  const body = (await request.json()) as RegisterBody | AdvanceBody
+  const body = (await readJsonObject(request)) as RegisterBody | AdvanceBody
 
   if (body.action === 'register') {
     return handleRegister(userId, body.code)

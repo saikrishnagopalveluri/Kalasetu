@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
+import { readJsonObject } from '@/lib/readJson'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { isValidTier, isValidPeriod, priceFor } from '@/lib/pricing'
+
+// Constant-time comparison, so response timing can't leak how many leading
+// characters of a forged signature were correct.
+function isValidSignature(orderId: string, paymentId: string, signature: string, keySecret: string): boolean {
+  const expected = Buffer.from(createHmac('sha256', keySecret).update(`${orderId}|${paymentId}`).digest('hex'))
+  const received = Buffer.from(signature)
+  return expected.length === received.length && timingSafeEqual(expected, received)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,8 +20,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
     }
 
-    const { orderId, paymentId, signature } = await request.json()
-    if (!orderId || !paymentId || !signature) {
+    const { orderId, paymentId, signature } = await readJsonObject(request)
+    if (
+      typeof orderId !== 'string' || typeof paymentId !== 'string' || typeof signature !== 'string' ||
+      !orderId || !paymentId || !signature
+    ) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
@@ -36,10 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the payment really happened and wasn't tampered with client-side.
-    const expectedSignature = createHmac('sha256', keySecret)
-      .update(`${orderId}|${paymentId}`)
-      .digest('hex')
-    if (expectedSignature !== signature) {
+    if (!isValidSignature(orderId, paymentId, signature, keySecret)) {
       console.error('Razorpay signature mismatch for order', orderId)
       return NextResponse.json({ error: 'Payment could not be verified.' }, { status: 400 })
     }

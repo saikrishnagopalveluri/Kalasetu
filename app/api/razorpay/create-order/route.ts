@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readJsonObject } from '@/lib/readJson'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { isValidTier, isValidPeriod, priceFor } from '@/lib/pricing'
 
 export async function POST(request: NextRequest) {
   try {
-    const { tier, period } = await request.json()
+    const { tier, period } = await readJsonObject(request)
     if (!isValidTier(tier) || !isValidPeriod(period)) {
       return NextResponse.json({ error: 'Unknown subscription tier or billing period' }, { status: 400 })
     }

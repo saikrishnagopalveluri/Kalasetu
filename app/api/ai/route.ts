@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
 import { NextRequest, NextResponse } from 'next/server'
-import { LANGUAGE_NAMES } from '@/lib/languages'
+import { languageName } from '@/lib/languages'
+import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { BRAND } from '@/lib/brand'
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 })
     }
 
-    const body = await request.json()
+    const body = await readJsonObject(request)
     const { messages, mode, language } = body
 
     // Validate input
@@ -143,8 +144,9 @@ Never present invented cultural or historical claims as fact. If unsure, put the
       systemPrompt += '\n\nYou are currently writing a B2B catalogue entry. Include: a product title, key specifications (material, dimensions or size if inferable, craft technique), and a short professional description suited for a wholesale buyer. Output only the catalogue entry. Nothing else.'
     }
 
-    if (language && LANGUAGE_NAMES[language]) {
-      systemPrompt += `\n\nRespond only in ${LANGUAGE_NAMES[language]}, regardless of what language the input is in.`
+    const responseLanguage = languageName(language)
+    if (responseLanguage) {
+      systemPrompt += `\n\nRespond only in ${responseLanguage}, regardless of what language the input is in.`
     }
 
     // Call Claude first

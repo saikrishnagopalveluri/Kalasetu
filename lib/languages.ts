@@ -30,3 +30,10 @@ export type LanguageId = typeof LANGUAGES[number]['id']
 export const LANGUAGE_NAMES: Record<string, string> = Object.fromEntries(
   LANGUAGES.map((l) => [l.id, l.name])
 )
+
+// Safe lookup for untrusted input (request bodies): only the language ids
+// listed above resolve, so a value like "constructor" or "__proto__" can
+// never pull an inherited Object property into an AI prompt.
+export function languageName(id: unknown): string | undefined {
+  return typeof id === 'string' && Object.hasOwn(LANGUAGE_NAMES, id) ? LANGUAGE_NAMES[id] : undefined
+}

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
-import { LANGUAGE_NAMES } from './languages'
+import { languageName } from './languages'
 import { BRAND } from './brand'
 
 // Server-only — shared by /api/story-evaluate (the live "Check with AI"
@@ -67,8 +67,9 @@ function parseScores(raw: string): StoryScores | null {
 }
 
 export async function evaluateStory(title: string, content: string, language?: string): Promise<StoryScores | null> {
-  const langNote = language && LANGUAGE_NAMES[language]
-    ? `\n\nThis story is written in ${LANGUAGE_NAMES[language]}.`
+  const storyLanguage = languageName(language)
+  const langNote = storyLanguage
+    ? `\n\nThis story is written in ${storyLanguage}.`
     : ''
   const userMessage = `Title: ${title}\n\n${content}`
 

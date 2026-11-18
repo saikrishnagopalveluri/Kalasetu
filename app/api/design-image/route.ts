@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { generateImage, AllProvidersFailedError } from '@/lib/imageProviders'
@@ -28,13 +29,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 })
     }
 
-    const { craftType, theme, notes } = await request.json()
+    const { craftType, theme, notes } = await readJsonObject(request)
 
     if (!craftType || typeof craftType !== 'string') {
       return NextResponse.json({ error: 'Craft type is required' }, { status: 400 })
     }
 
-    const visualDesc = THEME_VISUALS[theme] || THEME_VISUALS.motifs
+    const visualDesc = typeof theme === 'string' && Object.hasOwn(THEME_VISUALS, theme)
+      ? THEME_VISUALS[theme]
+      : THEME_VISUALS.motifs
     const notesDesc = notes && typeof notes === 'string' && notes.trim() ? `, ${notes.trim()}` : ''
     const prompt = `A new ${craftType} design concept, ${visualDesc}${notesDesc}, artisan reference sketch, rich detail, professional design mood board style, no text, no watermark`
 

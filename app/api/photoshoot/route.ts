@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { generateImage, AllProvidersFailedError } from '@/lib/imageProviders'
@@ -24,19 +25,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 })
     }
 
-    const { productName, material, preset, colorHint, refineNote, refImageDataUrl } = await request.json()
+    const { productName, material, preset, colorHint, refineNote, refImageDataUrl } = await readJsonObject(request)
 
     if (!productName || typeof productName !== 'string') {
       return NextResponse.json({ error: 'Product name is required' }, { status: 400 })
     }
 
-    const styleDesc = PRESET_PROMPTS[preset] || PRESET_PROMPTS.studio
+    const styleDesc = typeof preset === 'string' && Object.hasOwn(PRESET_PROMPTS, preset)
+      ? PRESET_PROMPTS[preset]
+      : PRESET_PROMPTS.studio
     // colorHint comes from the actual uploaded reference photo (detected client-side)
     // and is folded into the text prompt even for providers that can't take the
     // reference image itself, so it still nudges plain text-to-image generation.
     const colorDesc = colorHint && typeof colorHint === 'string' ? `, predominantly ${colorHint} in colour` : ''
     const refineDesc = refineNote && typeof refineNote === 'string' && refineNote.trim() ? `, ${refineNote.trim()}` : ''
-    const prompt = `${productName}${material ? `, made of ${material}` : ''}${colorDesc}, ${styleDesc}${refineDesc}, professional photography, high quality, detailed, no text, no watermark`
+    const prompt = `${productName}${typeof material === 'string' && material.trim() ? `, made of ${material.trim()}` : ''}${colorDesc}, ${styleDesc}${refineDesc}, professional photography, high quality, detailed, no text, no watermark`
 
     try {
       const { imageDataUrl } = await generateImage({

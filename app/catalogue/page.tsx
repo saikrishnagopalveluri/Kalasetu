@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { useFollowingState } from '@/lib/useFollowingState'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import { useAI } from '@/lib/useAI'
@@ -38,10 +39,9 @@ function CataloguePageInner() {
   const [products, setProducts] = useState<Product[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [template, setTemplate] = useState<typeof TEMPLATES[number]['id']>('modern')
-  const [language, setLanguage] = useState<typeof LANGUAGES[number]['id']>(uiLanguage)
+  const [language, setLanguage] = useFollowingState<typeof LANGUAGES[number]['id']>(uiLanguage)
   // See app/content/page.tsx for why this follows the site's own language
   // rather than always starting at English.
-  useEffect(() => { setLanguage(uiLanguage) }, [uiLanguage])
   const [labels, setLabels] = useState<Labels>(ENGLISH_LABELS)
   const [preparing, setPreparing] = useState(false)
   const [showPreview, setShowPreview] = useState(false)

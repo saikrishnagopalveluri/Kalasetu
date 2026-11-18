@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { readJsonObject } from '@/lib/readJson'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { LANGUAGES } from '@/lib/languages'
 import { isRateLimited, clientKey } from '@/lib/rateLimit'
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please try again in a minute.' }, { status: 429 })
   }
 
-  const { storyId, language } = await request.json()
+  const { storyId, language } = await readJsonObject(request)
   if (typeof storyId !== 'string' || typeof language !== 'string') {
     return NextResponse.json({ error: 'storyId and language are required' }, { status: 400 })
   }

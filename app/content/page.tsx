@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useFollowingState } from '@/lib/useFollowingState'
 import { useAI } from '@/lib/useAI'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
@@ -31,14 +32,13 @@ function ContentPageInner() {
   const [newName, setNewName] = useState('')
   const [newMaterial, setNewMaterial] = useState('')
   const [contentType, setContentType] = useState<typeof CONTENT_TYPES[number]>(CONTENT_TYPES[0])
-  const [language, setLanguage] = useState<typeof LANGUAGES[number]['id']>(uiLanguage)
+  const [language, setLanguage] = useFollowingState<typeof LANGUAGES[number]['id']>(uiLanguage)
   // Defaults to the site's own language rather than always English, and
   // follows it if the reader switches languages elsewhere on the site —
   // matches the same fix already applied to the blog reading experience.
   // A manual choice made right here still works exactly as before; it just
   // starts from the language the reader is already using instead of forcing
   // them to re-select it every time on this one tool.
-  useEffect(() => { setLanguage(uiLanguage) }, [uiLanguage])
   const [result, setResult] = useState('')
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')

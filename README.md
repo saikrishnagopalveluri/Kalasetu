@@ -4,6 +4,39 @@ An AI-powered digital business platform for traditional Indian artisans: AI-writ
 
 This one codebase and database serves two separately-branded, separately-deployed products — see "Multi-brand deployment" below.
 
+## Chosen vertical
+
+**Societal Benefit.** India has millions of traditional artisans (weavers, potters, metal and wood workers) whose skill is world class but whose income depends on middlemen, because selling online needs things most of them don't have: product photos, written listings in English, a storefront, and knowledge of the government schemes meant for them. KalaSetu is an assistant that gives an artisan those things from a phone, in their own language.
+
+## Approach and logic
+
+The assistant adapts to who the user is and what they are doing, rather than offering one generic chat box:
+
+- **Language first.** The artisan picks one of 23 languages on first visit. Every screen, every AI answer (`/api/ai` adds "respond only in <language>" to the prompt), every community story and every blog post is served in that language. Stories are judged in the language they were written in, never translated first.
+- **Task-aware AI.** `/api/ai` takes a `mode` (`description`, `craft_story`, `caption`, `pricing`, `whatsapp`) and switches the system prompt to match. A pricing question always factors in labour time; a WhatsApp message stays 2-4 lines; a craft story is told not to invent biographical facts.
+- **Gated publishing.** A community story is scored on seven dimensions by AI on the server. It is published only if the overall score is 8 or more; otherwise the artisan gets one specific suggestion to improve it. The browser never supplies a score.
+- **Progress that responds to real actions.** Profile completeness, badges, and the Saathi (mentor) referral reward each move forward only when the server confirms the underlying event happened (a saved profile, a first product, a published story).
+- **Graceful degradation.** Text AI falls back from Claude to Groq. Image generation walks a chain of five providers. If everything fails, the user gets a plain "try again shortly" message, never a stack trace.
+
+## How it works
+
+1. **Sign up** and choose a language and craft.
+2. **Studio / Products:** upload a phone photo, get a studio-quality product shot (the dominant colour is detected in the browser and folded into the prompt) plus an AI description and price guidance.
+3. **Catalogue:** publish a shareable public catalogue page; export to PDF, Word or PowerPoint.
+4. **Opportunities:** browse government schemes, competitions and trade shows. An admin-reviewed pipeline extracts these from official pages; nothing is auto-published.
+5. **Learn / Community / Blog:** short learning modules, artisan stories, and a daily blog, each readable in any of the 23 languages (translations are cached so cost does not grow with traffic).
+6. **Saathi:** an established artisan refers a newcomer and is rewarded once the newcomer has both completed a profile and added a first product.
+
+Every API route that spends money (AI, images, payments) checks the Supabase session on the server, is rate limited per user, validates its input, and returns generic error messages.
+
+## Assumptions
+
+- Artisans mostly use a phone, may have patchy connectivity, and are more comfortable in a regional language than in English.
+- An AI provider can be down or rate limited at any time, so every AI feature must have a fallback or a clear failure message.
+- Rate limiting is per serverless instance (there is no Redis); it is a cost guard, not a hard security boundary. Auth and Row Level Security are the real boundary.
+- Prices are in INR and paid through Razorpay; the price charged is always computed on the server from `lib/pricing.ts`.
+- Government scheme data is only shown after a human admin approves it.
+
 ## Multi-brand deployment
 
 Two Vercel projects deploy this same repo, differing only in the `NEXT_PUBLIC_BRAND` environment variable (`kalasetu` or `hastkatha`) and `NEXT_PUBLIC_APP_URL`:
@@ -70,7 +103,14 @@ Set these in `.env.local` for local development, and in the Vercel project setti
 npm test
 ```
 
-Covers translation-file integrity across all 23 languages, the auth guard on both cron endpoints, and the image-provider fallback chain. See `tests/`.
+Vitest suites in `tests/` cover:
+
+- **API routes:** auth, rate limiting, input validation, provider failure and success paths for `/api/ai`, `/api/photoshoot`, `/api/design-image`, `/api/story-evaluate`, `/api/story-publish`, `/api/story-translate`, `/api/referral`, and both webhook hooks.
+- **Payments:** Razorpay order creation charges the server-side price; verification rejects forged or mismatched signatures, unpaid orders, and wrong amounts, and grants the tier recorded on Razorpay's order rather than the one the client claims.
+- **Core logic:** pricing, KalaWallet balance and atomic redemption, profile completeness, story-score validation, rate limiting, request parsing, and the image-provider fallback chain.
+- **Platform:** cron endpoint auth, robots.txt and sitemap, branding, and translation-file integrity across all 23 languages.
+
+CI (`.github/workflows/tests.yml`) runs the suite and ESLint on every push and pull request.
 
 ## Database migrations
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
@@ -38,15 +39,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many requests. Please slow down and try again shortly.' }, { status: 429 })
   }
 
-  const { title, content, language, category } = await request.json()
-  if (!title?.trim() || !content?.trim() || !category) {
+  const { title, content, language, category } = await readJsonObject(request)
+  if (
+    typeof title !== 'string' || !title.trim() ||
+    typeof content !== 'string' || !content.trim() ||
+    typeof category !== 'string'
+  ) {
     return NextResponse.json({ error: 'title, content, and category are required' }, { status: 400 })
   }
   if (!STORY_CATEGORIES.some((c) => c.value === category)) {
     return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
   }
 
-  const scores = await evaluateStory(title, content, language)
+  const storyLanguage = typeof language === 'string' && language ? language : 'en'
+  const scores = await evaluateStory(title, content, storyLanguage)
   if (!scores) return NextResponse.json({ error: 'Evaluation failed. Please try again.' }, { status: 502 })
 
   if (scores.overall < PUBLISH_THRESHOLD) {
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
   const { error: insertError } = await supabaseAdmin.from('stories').insert({
     author_id: auth.userId,
     slug, title, content, category,
-    language: language || 'en',
+    language: storyLanguage,
     status: 'PUBLISHED',
     ai_scores: scores,
     ai_feedback: scores.feedback,
