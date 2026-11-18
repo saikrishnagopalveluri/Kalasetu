@@ -69,8 +69,7 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
-            placeholder={t('login.passwordPlaceholder')}
+              placeholder={t('login.passwordPlaceholder')}
             aria-invalid={!!shownError}
             style={{ ...inputStyle, paddingRight: 66, marginBottom: shownError ? 12 : 4 }}
           />
@@ -91,9 +90,9 @@ export default function LoginPage() {
         <Link href="/forgot-password" style={{ ...linkStyle, display: 'inline-block', fontSize: 13, marginTop: shownError ? 12 : 4 }}>
           {t('login.forgotPassword')}
         </Link>
-      </div>
+      </form>
 
-      <button onClick={handleSubmit} disabled={submitting} style={primaryButtonStyle(submitting)}>
+      <button type="submit" form="login-form" disabled={submitting} style={primaryButtonStyle(submitting)}>
         <span aria-live="polite">{submitting ? t('login.loggingIn') : t('login.logIn')}</span>
       </button>
 
