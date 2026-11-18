@@ -93,6 +93,8 @@ describe('generateImage: fallback ordering', () => {
 })
 
   
+
+describe('generateImage: provider retries and input fallback', () => {
   it('retries Hugging Face once after a cold-model 503', async () => {
     process.env.HF_API_KEY = 'test-hf-key'
     const fetchMock = vi.fn()
