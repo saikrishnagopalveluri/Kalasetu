@@ -85,11 +85,18 @@ export async function evaluateStory(title: string, content: string, language?: s
   } catch (claudeError) {
     console.error('storyEvaluator: Claude failed, falling back to Groq:', claudeError)
     if (groqClient) {
-      const groqResponse = await groqClient.chat.completions.create({
-        model: 'openai/gpt-oss-120b', max_tokens: 1024,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT + langNote }, { role: 'user', content: userMessage }],
-      })
-      raw = groqResponse.choices[0]?.message?.content ?? null
+      // Callers treat null as "evaluation unavailable", so a failure here
+      // must not escape as an exception (story-publish has no try/catch).
+      try {
+        const groqResponse = await groqClient.chat.completions.create({
+          model: 'openai/gpt-oss-120b', max_tokens: 1024,
+          messages: [{ role: 'system', content: SYSTEM_PROMPT + langNote }, { role: 'user', content: userMessage }],
+        })
+        raw = groqResponse.choices[0]?.message?.content ?? null
+      } catch (groqError) {
+        console.error('storyEvaluator: Groq fallback also failed:', groqError)
+        return null
+      }
     }
   }
 

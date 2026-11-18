@@ -12,7 +12,9 @@ import { getTranslations, TRANSLATED_LANGUAGES, type TranslationKey } from '@/li
 // silently overwrote another value when the file was authored/edited.
 
 const englishKeys = Object.keys(getTranslations('en')) as TranslationKey[]
-const rawSource = fs.readFileSync(path.resolve(__dirname, '../lib/translations.ts'), 'utf8')
+// Normalized to \n so the block regexes below also work on a Windows
+// checkout, where Git may convert the file to CRLF line endings.
+const rawSource = fs.readFileSync(path.resolve(__dirname, '../lib/translations.ts'), 'utf8').replace(/\r\n/g, '\n')
 
 describe('translations: structural integrity', () => {
   it('every language listed in lib/languages.ts has a dictionary in translations.ts', () => {

@@ -98,4 +98,18 @@ describe('evaluateStory', () => {
     const { evaluateStory } = await import('@/lib/storyEvaluator')
     await expect(evaluateStory('Story title', 'Story content')).resolves.toBeNull()
   })
+
+  it('returns null instead of throwing when Claude and Groq both fail', async () => {
+    mocks.anthropicCreate.mockRejectedValue(new Error('Claude unavailable'))
+    mocks.groqCreate.mockRejectedValue(new Error('Groq unavailable'))
+    const { evaluateStory } = await import('@/lib/storyEvaluator')
+    await expect(evaluateStory('Story title', 'Story content')).resolves.toBeNull()
+  })
+
+  it('ignores a language id that is not a real language', async () => {
+    mocks.anthropicCreate.mockResolvedValue({ content: [{ type: 'text', text: '{}' }] })
+    const { evaluateStory } = await import('@/lib/storyEvaluator')
+    await evaluateStory('Story title', 'Story content', 'constructor')
+    expect(mocks.anthropicCreate.mock.calls[0][0].system).not.toContain('This story is written in')
+  })
 })
