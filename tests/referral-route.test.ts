@@ -126,6 +126,23 @@ describe('POST /api/referral', () => {
     expect(builder.insert).not.toHaveBeenCalled()
   })
 
+  it('does not advance milestones for users without a referral', async () => {
+    const builder = {
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      select: vi.fn(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+    }
+    builder.select.mockReturnValue(builder)
+    mocks.from.mockReturnValue(builder)
+
+    const { POST } = await import('@/app/api/referral/route')
+    const response = await POST(request({ action: 'advance', stage: 'PROFILE_COMPLETED' }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true, noReferral: true })
+  })
+
   it('rejects invalid referral advancement stages', async () => {
     const { POST } = await import('@/app/api/referral/route')
     const response = await POST(request({ action: 'advance', stage: 'UNSUPPORTED' }))
