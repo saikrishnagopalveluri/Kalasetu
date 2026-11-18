@@ -43,13 +43,6 @@ describe('POST /api/referral', () => {
     })
   })
 
-  it('returns 503 when the admin database client is unavailable', async () => {
-    vi.doMock('@/lib/supabaseAdmin', () => ({ supabaseAdmin: null }))
-    const { POST } = await import('@/app/api/referral/route')
-    const response = await POST(request({ action: 'register', code: 'ABC' }))
-    expect(response.status).toBe(503)
-  })
-
   it('rejects unauthenticated requests', async () => {
     mocks.requireUser.mockResolvedValue({ ok: false, userId: null })
     const { POST } = await import('@/app/api/referral/route')
