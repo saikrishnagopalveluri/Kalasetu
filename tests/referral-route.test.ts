@@ -31,15 +31,10 @@ describe('POST /api/referral', () => {
     vi.resetModules()
     vi.clearAllMocks()
     mocks.requireUser.mockResolvedValue({ ok: true, userId: 'user-123' })
-    mocks.from.mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
-        }),
-      }),
-      insert: vi.fn().mockResolvedValue({ error: null }),
-      update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+    mocks.from.mockImplementation(() => {
+      const builder = { eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }), select: vi.fn(), insert: vi.fn().mockResolvedValue({ error: null }), update: vi.fn().mockReturnThis() }
+      builder.select.mockReturnValue(builder)
+      return builder
     })
   })
 
@@ -62,6 +57,74 @@ describe('POST /api/referral', () => {
     const response = await POST(request({ action: 'register', code: '' }))
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: 'Missing code' })
+  })
+
+  it('registers a referral when the code belongs to another artisan', async () => {
+    let queryCount = 0
+    const builder = {
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(),
+      select: vi.fn(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+    }
+    builder.select.mockReturnValue(builder)
+    builder.maybeSingle.mockImplementation(() => {
+      queryCount++
+      return Promise.resolve({ data: null, error: null })
+    })
+    mocks.from.mockReturnValue(builder)
+    mocks.getUserById.mockResolvedValue({ data: { user: { email: 'new-artisan@example.com' } })
+
+    const { POST } = await import('@/app/api/referral/route')
+    const response = await POST(request({ action: 'register', code: 'SAATHI123' }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true, registered: true })
+    expect(mocks.getUserById).toHaveBeenCalledWith('user-123')
+    expect(builder.insert).toHaveBeenCalledWith(expect.objectContaining({
+      saathi_id: expect.any(String),
+      referred_user_id: 'user-123',
+      referred_email: 'new-artisan@example.com',
+      referral_code: 'SAATHI123',
+      status: 'REGISTERED',
+    }))
+  })
+
+  it('silently ignores self-referral codes', async () => {
+    const builder = {
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn(),
+      select: vi.fn(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+    }
+    builder.select.mockReturnValue(builder)
+    builder.maybeSingle
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: { id: 'user-123' }, error: null })
+    mocks.from.mockReturnValue(builder)
+
+    const { POST } = await import('@/app/api/referral/route')
+    const response = await POST(request({ action: 'register', code: 'SELF' }))
+    expect(await response.json()).toEqual({ ok: true, registered: false })
+    expect(builder.insert).not.toHaveBeenCalled()
+  }
+
+  it('does not register a user who already has a referral', async () => {
+    const builder = {
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'existing-referral' }, error: null }),
+      select: vi.fn(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+    }
+    builder.select.mockReturnValue(builder)
+    mocks.from.mockReturnValue(builder)
+
+    const { POST } = await import('@/app/api/referral/route')
+    const response = await POST(request({ action: 'register', code: 'SAATHI123' }))
+    expect(await response.json()).toEqual({ ok: true, alreadyReferred: true })
+    expect(builder.insert).not.toHaveBeenCalled()
   })
 
   it('rejects invalid referral advancement stages', async () => {
