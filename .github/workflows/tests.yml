@@ -26,4 +26,5 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test
-      - name: Lint changed test and evaluator files\n        run: npx eslint tests lib/storyEvaluator.ts
+      - name: Lint changed test and evaluator files
+        run: npx eslint tests lib/storyEvaluator.ts
