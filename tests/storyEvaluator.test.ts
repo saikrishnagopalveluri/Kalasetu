@@ -67,6 +67,19 @@ describe('evaluateStory', () => {
     await expect(evaluateStory('Story title', 'Story content')).resolves.toBeNull()
   })
 
+  it('rejects scores outside the 0-10 range', async () => {
+    mocks.anthropicCreate.mockResolvedValue(claude(JSON.stringify({ ...validScores, overall: 11 })))
+    const { evaluateStory } = await import('@/lib/storyEvaluator')
+    await expect(evaluateStory('Story title', 'Story content')).resolves.toBeNull()
+  })
+
+  it('rejects a response missing a required dimension', async () => {
+    const { storytelling: _storytelling, ...incomplete } = validScores
+    mocks.anthropicCreate.mockResolvedValue(claude(JSON.stringify(incomplete)))
+    const { evaluateStory } = await import('@/lib/storyEvaluator')
+    await expect(evaluateStory('Story title', 'Story content')).resolves.toBeNull()
+  })
+
   it('falls back to Groq when Claude fails', async () => {
     mocks.anthropicCreate.mockRejectedValue(new Error('Claude unavailable'))
     mocks.groqCreate.mockResolvedValue({
