@@ -45,7 +45,7 @@ export default function LoginPage() {
       </div>
       <div className="ks-zari-band" style={{ borderRadius: 4, marginBottom: 24 }} />
 
-      <div className="ks-pop-in ks-lattice" style={{
+      <form className="ks-pop-in ks-lattice" onSubmit={(e) => { e.preventDefault(); void handleSubmit() }} style={{
         backgroundColor: 'var(--ks-linen)', border: '1px solid var(--ks-border)', borderRadius: 18,
         padding: 22, marginBottom: 20, boxShadow: '0 6px 20px rgba(19,42,69,0.08)',
       }}>
