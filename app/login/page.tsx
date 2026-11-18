@@ -57,7 +57,6 @@ export default function LoginPage() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
           placeholder="you@example.com"
           aria-invalid={!!shownError}
           style={inputStyle}
@@ -95,7 +94,7 @@ export default function LoginPage() {
       </div>
 
       <button onClick={handleSubmit} disabled={submitting} style={primaryButtonStyle(submitting)}>
-        {submitting ? t('login.loggingIn') : t('login.logIn')}
+        <span aria-live="polite">{submitting ? t('login.loggingIn') : t('login.logIn')}</span>
       </button>
 
       <p style={{ fontSize: 14, color: 'var(--ks-muted)', marginTop: 20, textAlign: 'center' }}>
