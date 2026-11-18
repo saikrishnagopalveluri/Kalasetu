@@ -49,9 +49,7 @@ describe('evaluateStory', () => {
   })
 
   it('parses JSON wrapped in markdown fences', async () => {
-    mocks.anthropicCreate.mockResolvedValue(claude(```json
-${JSON.stringify(validScores)}
-````))
+    mocks.anthropicCreate.mockResolvedValue(claude('```json\\n' + JSON.stringify(validScores) + '\\n```'))
     const { evaluateStory } = await import('@/lib/storyEvaluator')
     await expect(evaluateStory('Story title', 'Story content')).resolves.toEqual(validScores)
   })
