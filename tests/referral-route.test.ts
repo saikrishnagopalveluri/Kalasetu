@@ -60,7 +60,6 @@ describe('POST /api/referral', () => {
   })
 
   it('registers a referral when the code belongs to another artisan', async () => {
-    let queryCount = 0
     const builder = {
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn(),
@@ -69,12 +68,12 @@ describe('POST /api/referral', () => {
       update: vi.fn().mockReturnThis(),
     }
     builder.select.mockReturnValue(builder)
-    builder.maybeSingle.mockImplementation(() => {
-      queryCount++
-      return Promise.resolve({ data: null, error: null })
-    })
+    builder.maybeSingle
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: { id: 'saathi-456' }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
     mocks.from.mockReturnValue(builder)
-    mocks.getUserById.mockResolvedValue({ data: { user: { email: 'new-artisan@example.com' } })
+    mocks.getUserById.mockResolvedValue({ data: { user: { email: 'new-artisan@example.com' } } })
 
     const { POST } = await import('@/app/api/referral/route')
     const response = await POST(request({ action: 'register', code: 'SAATHI123' }))
