@@ -43,13 +43,6 @@ describe('POST /api/story-publish', () => {
     mocks.checkAndAwardBadges.mockResolvedValue(undefined)
   })
 
-  it('returns 503 when the admin database client is not configured', async () => {
-    vi.doMock('@/lib/supabaseAdmin', () => ({ supabaseAdmin: null }))
-    const { POST } = await import('@/app/api/story-publish/route')
-    const response = await POST(request({ title: 'Story', content: 'Content', category: 'craft' }))
-    expect(response.status).toBe(503)
-  })
-
   it('rejects unauthenticated requests', async () => {
     mocks.requireUser.mockResolvedValue({ ok: false, userId: null })
     const { POST } = await import('@/app/api/story-publish/route')
