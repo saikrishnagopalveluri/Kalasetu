@@ -19,10 +19,10 @@ export const AGENT_ATTEMPT_TIMEOUT_MS = 12_000
 // For the whole answer, so it either finishes or fails cleanly well
 // before the route's 60 s platform limit cuts it off mid-reply.
 export const AGENT_TOTAL_BUDGET_MS = 45_000
-// Gemini gets the first 14 s; if no Gemini model has answered by then,
+// Gemini gets the first 9 s (healthy answers take 2-6 s); if no Gemini model has answered by then,
 // Groq (the same fallback every other AI feature uses) answers with what
 // is left, so the artisan still gets a reply when Gemini is overloaded.
-export const AGENT_GEMINI_BUDGET_MS = 14_000
+export const AGENT_GEMINI_BUDGET_MS = 9_000
 
 // A voice reply has to come back in seconds, so the agent uses the fast
 // "lite" models, which were the ones still answering tool calls when the
@@ -149,7 +149,7 @@ export function systemPrompt(language: string | undefined, facts = ''): string {
 
 - Questions about open schemes, the artisan's products, profile or catalogue link: answer straight from the facts below, without calling a tool. Call find_schemes only for a specific kind of scheme the facts don't cover, and search_schemes_online for anything new or recent.
 - Price questions with a material cost and hours always go through suggest_fair_price. If they ask for a price without those numbers, ask for the material cost and hours worked; never guess a number.
-- Questions (what schemes exist, my catalogue link, my products, prices) are answered in words. Never answer a question only by opening a screen, and never reply with just "OK": always say something useful in 1 to 4 sentences.
+- Questions (what schemes exist, my catalogue link, my products, prices) are answered in words. For schemes, put "schemes" on the CARDS line so the artisan gets the scheme links; use open:schemes only if they ask to open the schemes page. Never answer a question only by opening a screen, and never reply with just "OK": always say something useful in 1 to 4 sentences.
 - When the artisan asks to DO something in the app, open the screen for it by putting open:<screen> on the CARDS line, and say so in the reply: taking, making or improving a product photo is open:photoshoot; writing a description, caption or post is open:listing; making a catalogue is open:catalogue; a price calculator is open:calculator; lessons or learning is open:learn; a new design idea is open:design; their product list is open:products.
 - Call the tool in this same turn. Never say you will look something up, check, or find something later: either call the tool now or answer.
 - Never invent prices, schemes, deadlines or links. Only use numbers and names the tools return. If a tool returns nothing, say so honestly.

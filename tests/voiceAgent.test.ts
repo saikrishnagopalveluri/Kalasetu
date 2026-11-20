@@ -164,12 +164,12 @@ describe('one-call answers from preloaded facts', () => {
     expect(result.actions).toEqual([{ type: 'open', screen: 'photoshoot', path: '/studio', label: 'AI Photoshoot' }])
   })
 
-  it("asks for replies in each language's own script and hands over to Groq after 14 seconds", async () => {
+  it("asks for replies in each language's own script and hands over to Groq after 9 seconds", async () => {
     const fetchMock = stubFetch(textReply('REPLY: ok'))
     const { runVoiceAgent, AGENT_GEMINI_BUDGET_MS } = await import('@/lib/voiceAgent')
     await runVoiceAgent({ text: 'hi', language: 'te', data: fakeData() })
     expect(bodyOf(fetchMock, 0).systemInstruction.parts[0].text).toContain("Always reply in Telugu, written in Telugu's own script")
-    expect(AGENT_GEMINI_BUDGET_MS).toBe(14_000)
+    expect(AGENT_GEMINI_BUDGET_MS).toBe(9_000)
   })
 
   it('still answers when a database read fails, leaving that fact out', async () => {
