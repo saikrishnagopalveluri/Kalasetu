@@ -114,12 +114,57 @@ describe('WAV encoding', () => {
 describe('parseAgentText', () => {
   it('splits the HEARD and REPLY lines', async () => {
     const { parseAgentText } = await import('@/lib/voiceAgent')
-    expect(parseAgentText('HEARD: ధర ఎంత?\nREPLY: ₹7,860 పెట్టండి — సరైన ధర.')).toEqual({ heard: 'ధర ఎంత?', reply: '₹7,860 పెట్టండి, సరైన ధర.' })
+    expect(parseAgentText('HEARD: ధర ఎంత?\nREPLY: ₹7,860 పెట్టండి — సరైన ధర.')).toEqual({ heard: 'ధర ఎంత?', reply: '₹7,860 పెట్టండి, సరైన ధర.', cards: [] })
   })
 
   it('uses the whole text as the reply when the model skips the format', async () => {
     const { parseAgentText } = await import('@/lib/voiceAgent')
-    expect(parseAgentText('**Charge ₹500.**')).toEqual({ heard: null, reply: 'Charge ₹500.' })
+    expect(parseAgentText('**Charge ₹500.**')).toEqual({ heard: null, reply: 'Charge ₹500.', cards: [] })
+  })
+})
+
+describe('one-call answers from preloaded facts', () => {
+  it('reads the CARDS line and keeps it out of the spoken reply', async () => {
+    const { parseAgentText } = await import('@/lib/voiceAgent')
+    expect(parseAgentText('HEARD: schemes?\nREPLY: PM Vishwakarma is open.\nCARDS: schemes')).toEqual({ heard: 'schemes?', reply: 'PM Vishwakarma is open.', cards: ['schemes'] })
+    expect(parseAgentText('REPLY: Here it is.\nCARDS: catalogue, junk')).toMatchObject({ reply: 'Here it is.', cards: ['catalogue'] })
+  })
+
+  it('gives Gemini the schemes, profile and products as facts', async () => {
+    const fetchMock = stubFetch(textReply('REPLY: ok\nCARDS: none'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    await runVoiceAgent({ text: 'hi', data: fakeData() })
+    const system = bodyOf(fetchMock, 0).systemInstruction.parts[0].text as string
+    expect(system).toContain('Open schemes and opportunities: PM Vishwakarma (scheme)')
+    expect(system).toContain('The artisan: Lakshmi, handloom, Telangana. Public catalogue link: https://x.test/a/lakshmi')
+    expect(system).toContain('Their products (1): Ikat saree in silk (needs a listing)')
+  })
+
+  it('answers a schemes question in one model call and still shows the scheme cards', async () => {
+    const fetchMock = stubFetch(textReply('HEARD: schemes?\nREPLY: PM Vishwakarma is open for weavers.\nCARDS: schemes'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'Any schemes for weavers?', data: fakeData() })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({ reply: 'PM Vishwakarma is open for weavers.', toolsUsed: [] })
+    expect(result.actions).toEqual([{ type: 'schemes', items: [{ title: 'PM Vishwakarma', type: 'scheme', deadline: null, url: 'https://pmv.gov.in' }] }])
+  })
+
+  it('shows the catalogue card when the answer gives the link', async () => {
+    stubFetch(textReply('REPLY: Your link is ready.\nCARDS: catalogue'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'my catalogue link', data: fakeData() })
+    expect(result.actions).toEqual([{ type: 'catalogue', url: 'https://x.test/a/lakshmi' }])
+  })
+
+  it('still answers when a database read fails, leaving that fact out', async () => {
+    const data = fakeData()
+    data.listProducts.mockRejectedValue(new Error('db down'))
+    const fetchMock = stubFetch(textReply('REPLY: ok'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    await runVoiceAgent({ text: 'hi', data })
+    const system = bodyOf(fetchMock, 0).systemInstruction.parts[0].text as string
+    expect(system).not.toContain('Their products')
+    expect(system).toContain('Open schemes and opportunities')
   })
 })
 
@@ -245,6 +290,43 @@ describe('runVoiceAgent', () => {
     const result = await runVoiceAgent({ text: 'hi', data: fakeData() })
     expect(result.reply).toBe('Here you go.')
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('starts a backup request after 3 seconds and uses whichever answers first', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const fetchMock = vi.fn()
+        .mockImplementationOnce(() => new Promise(() => {})) // first call hangs
+        .mockResolvedValueOnce(textReply('REPLY: Backup answered.'))
+      vi.stubGlobal('fetch', fetchMock)
+      const { runVoiceAgent, AGENT_HEDGE_AFTER_MS } = await import('@/lib/voiceAgent')
+      const pending = runVoiceAgent({ text: 'hi', data: fakeData() })
+      await vi.advanceTimersByTimeAsync(AGENT_HEDGE_AFTER_MS - 100)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(200)
+      const result = await pending
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(result.reply).toBe('Backup answered.')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not start a backup when the first answer is quick', async () => {
+    const fetchMock = stubFetch(textReply('REPLY: Quick.'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    await runVoiceAgent({ text: 'hi', data: fakeData() })
+    await new Promise((r) => setTimeout(r, 50))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('after a 429 (quota used up) goes straight to a different model', async () => {
+    const quota = { ok: false, status: 429, text: async () => 'quota', json: async () => ({}) }
+    const fetchMock = stubFetch(quota, textReply('REPLY: From another model.'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'hi', data: fakeData() })
+    expect([0, 1].map((i) => modelOf(fetchMock, i))).toEqual(['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'])
+    expect(result.reply).toBe('From another model.')
   })
 
   it('caps every attempt at 12 seconds and the whole answer at 45 seconds', async () => {

@@ -10,6 +10,7 @@ import { callGenerateContent, geminiGrounded, responseParts, type GeminiResponse
 import { calculateFairPrice } from './fairPrice'
 import { languageName } from './languages'
 import { BRAND } from './brand'
+import { runGroqAgent } from './voiceAgentGroq'
 
 export const MAX_AGENT_STEPS = 4
 // Per attempt. Healthy calls finish in 2-10 s (measured live); a call
@@ -18,6 +19,10 @@ export const AGENT_ATTEMPT_TIMEOUT_MS = 12_000
 // For the whole answer, so it either finishes or fails cleanly well
 // before the route's 60 s platform limit cuts it off mid-reply.
 export const AGENT_TOTAL_BUDGET_MS = 45_000
+// Gemini gets the first 30 s; if no Gemini model has answered by then,
+// Groq (the same fallback every other AI feature uses) answers with what
+// is left, so the artisan still gets a reply when Gemini is overloaded.
+export const AGENT_GEMINI_BUDGET_MS = 30_000
 
 // A voice reply has to come back in seconds, so the agent uses the fast
 // "lite" models, which were the ones still answering tool calls when the
@@ -82,7 +87,7 @@ export type AgentResult = {
   model: string
 }
 
-const FUNCTION_DECLARATIONS = [
+export const FUNCTION_DECLARATIONS = [
   {
     name: 'suggest_fair_price',
     description: 'Calculate a fair selling price for a handmade product from material cost and hours of work. Always use this for any price question instead of guessing a number.',
@@ -138,11 +143,13 @@ const FUNCTION_DECLARATIONS = [
   },
 ]
 
-function systemPrompt(language: string | undefined): string {
+export function systemPrompt(language: string | undefined, facts = ''): string {
   const lang = languageName(language)
   return `You are ${BRAND.name} Saathi, a voice assistant for traditional Indian artisans. Artisans talk to you, often in a regional language and often with little reading or typing, so your reply will be read aloud.
 
-- Use your tools to actually help: price questions go through suggest_fair_price, scheme or support questions through find_schemes first (then search_schemes_online for anything new, recent or missing), "my products" through get_my_products, catalogue or sharing questions through get_my_profile, and when the artisan wants to do something in the app, open_screen.
+- Questions about open schemes, the artisan's products, profile or catalogue link: answer straight from the facts below, without calling a tool. Call find_schemes only for a specific kind of scheme the facts don't cover, and search_schemes_online for anything new or recent.
+- Price questions with a material cost and hours always go through suggest_fair_price. If they ask for a price without those numbers, ask for the material cost and hours worked; never guess a number.
+- When the artisan wants to do something in the app, call open_screen: taking, making or improving a product photo opens "photoshoot"; writing a description, caption or post opens "listing"; making or sharing a catalogue opens "catalogue"; a price calculator opens "calculator"; lessons or learning open "learn"; a new design idea opens "design"; their product list opens "products". Do this even when you also explain something.
 - Call the tool in this same turn. Never say you will look something up, check, or find something later: either call the tool now or answer.
 - Never invent prices, schemes, deadlines or links. Only use numbers and names the tools return. If a tool returns nothing, say so honestly.
 - Speak plainly, like a friendly person who knows crafts. 2 to 4 short sentences. No markdown, no lists, no symbols, no emojis, because this is spoken aloud. Say amounts as rupees.
@@ -150,9 +157,10 @@ function systemPrompt(language: string | undefined): string {
 - If someone sounds in crisis or mentions self-harm, gently share the KIRAN helpline 1800-599-0019 (24/7, free) and encourage them to call.
 ${lang ? `- Always reply in ${lang}, whatever language the artisan uses.` : "- Reply in the same language the artisan speaks."}
 
-Format your final answer exactly as two lines:
+Format your final answer exactly as three lines:
 HEARD: <what the artisan said, written in their language and script>
-REPLY: <your spoken reply>`
+REPLY: <your spoken reply>
+CARDS: <"schemes" if you talked about schemes from the facts, "catalogue" if you gave the catalogue link, otherwise "none">${facts ? `\n\n${facts}` : ''}`
 }
 
 type Part = Record<string, unknown>
@@ -162,7 +170,7 @@ function str(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-async function runTool(name: string, args: Record<string, unknown>, data: AgentDataSource, actions: AgentAction[]): Promise<Record<string, unknown>> {
+export async function runTool(name: string, args: Record<string, unknown>, data: AgentDataSource, actions: AgentAction[]): Promise<Record<string, unknown>> {
   switch (name) {
     case 'suggest_fair_price': {
       const result = calculateFairPrice({
@@ -215,14 +223,17 @@ async function runTool(name: string, args: Record<string, unknown>, data: AgentD
   }
 }
 
-export function parseAgentText(text: string): { heard: string | null; reply: string } {
+export function parseAgentText(text: string): { heard: string | null; reply: string; cards: string[] } {
   const cleaned = text.replace(/\*\*/g, '').trim()
   const heard = cleaned.match(/^\s*HEARD:\s*(.*)$/im)?.[1]?.trim() || null
-  const replyIdx = cleaned.search(/^\s*REPLY:/im)
+  const cardsLine = cleaned.match(/^\s*CARDS:\s*(.*)$/im)?.[1] ?? ''
+  const cards = cardsLine.toLowerCase().split(/[\s,]+/).filter((c) => c === 'schemes' || c === 'catalogue')
+  const withoutCards = cleaned.replace(/^\s*CARDS:.*$/im, '').trim()
+  const replyIdx = withoutCards.search(/^\s*REPLY:/im)
   const reply = replyIdx === -1
-    ? cleaned.replace(/^\s*HEARD:.*$/im, '').trim()
-    : cleaned.slice(replyIdx).replace(/^\s*REPLY:\s*/i, '').trim()
-  return { heard, reply: reply.replace(/\s*—\s*/g, ', ') }
+    ? withoutCards.replace(/^\s*HEARD:.*$/im, '').trim()
+    : withoutCards.slice(replyIdx).replace(/^\s*REPLY:\s*/i, '').trim()
+  return { heard, reply: reply.replace(/\s*—\s*/g, ', '), cards }
 }
 
 // Gemini models are sometimes briefly overloaded (503) or stall. Each step
@@ -237,37 +248,143 @@ function isTimeout(err: unknown): boolean {
   return err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError' || /aborted due to timeout/i.test(err.message))
 }
 
-async function agentStep(models: string[], body: Record<string, unknown>, deadline: number): Promise<{ json: GeminiResponse; model: string }> {
-  let lastError: unknown = new Error('voiceAgent: no model available')
-  const order = attemptOrder(models)
-  for (let i = 0; i < order.length; i++) {
-    const model = order[i]
-    // The retry is for a quick "busy" answer. A model that just stalled
-    // for the full attempt time is unlikely to recover on the spot.
-    if (i === 1 && isTimeout(lastError)) continue
-    const remaining = deadline - Date.now()
-    if (remaining < 1_000) break
-    try {
-      const json = (await callGenerateContent(model, body, Math.min(AGENT_ATTEMPT_TIMEOUT_MS, remaining))) as GeminiResponse
-      // An empty reply (no text and no tool call) is a failed attempt too:
-      // models occasionally spend their whole output on thinking or emit a
-      // malformed tool call. Move on rather than failing the answer.
-      const parts = responseParts(json)
-      const usable = parts.some((p) => (p.functionCall && typeof p.functionCall === 'object') || (typeof p.text === 'string' && p.text.trim() && !p.thought))
-      if (!usable) {
-        const reason = (json.candidates?.[0] as { finishReason?: string } | undefined)?.finishReason ?? 'unknown'
-        throw new Error(`voiceAgent: ${model} returned an empty reply (finish: ${reason})`)
-      }
-      return { json, model }
-    } catch (err) {
-      lastError = err
-      console.error(`voiceAgent: ${model} failed:`, err instanceof Error ? err.message : err)
-    }
+// Retrying the same model only helps after a brief "busy" (503). After a
+// stall or a 429 (that model's per-minute quota is used up) go straight
+// to a different model, which has its own quota.
+function skipRetry(err: unknown): boolean {
+  return isTimeout(err) || (err instanceof Error && (err as { status?: number }).status === 429)
+}
+
+// How long the first attempt gets before a backup request starts in
+// parallel. Healthy answers usually arrive in 1-4 s; past this the call is
+// probably stuck behind an overload, and racing a second request cuts the
+// slow tail without waiting for a timeout.
+export const AGENT_HEDGE_AFTER_MS = 3_000
+
+async function tryModel(model: string, body: Record<string, unknown>, timeoutMs: number): Promise<{ json: GeminiResponse; model: string }> {
+  const json = (await callGenerateContent(model, body, timeoutMs)) as GeminiResponse
+  // An empty reply (no text and no tool call) is a failed attempt too:
+  // models occasionally spend their whole output on thinking or emit a
+  // malformed tool call. Move on rather than failing the answer.
+  const parts = responseParts(json)
+  const usable = parts.some((p) => (p.functionCall && typeof p.functionCall === 'object') || (typeof p.text === 'string' && p.text.trim() && !p.thought))
+  if (!usable) {
+    const reason = (json.candidates?.[0] as { finishReason?: string } | undefined)?.finishReason ?? 'unknown'
+    throw new Error(`voiceAgent: ${model} returned an empty reply (finish: ${reason})`)
   }
-  throw lastError
+  return { json, model }
+}
+
+// Runs the attempts for one step: the next attempt starts as soon as one
+// fails, or after AGENT_HEDGE_AFTER_MS if the first is still running (at
+// most one backup in flight), and the first good answer wins.
+function agentStep(models: string[], body: Record<string, unknown>, deadline: number): Promise<{ json: GeminiResponse; model: string }> {
+  const order = attemptOrder(models)
+  return new Promise((resolve, reject) => {
+    let next = 0
+    let inFlight = 0
+    let settled = false
+    let lastError: unknown = new Error('voiceAgent: no model available')
+    const timer: { hedge?: ReturnType<typeof setTimeout> } = {}
+
+    const finish = (fn: () => void) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer.hedge)
+      fn()
+    }
+
+    const launch = (): boolean => {
+      while (next < order.length) {
+        const i = next++
+        // The retry is for a quick "busy" answer. A model that just stalled
+        // for the full attempt time is unlikely to recover on the spot.
+        if (i === 1 && skipRetry(lastError)) continue
+        const remaining = deadline - Date.now()
+        if (remaining < 1_000) return false
+        const model = order[i]
+        inFlight++
+        tryModel(model, body, Math.min(AGENT_ATTEMPT_TIMEOUT_MS, remaining)).then(
+          (result) => finish(() => resolve(result)),
+          (err) => {
+            inFlight--
+            lastError = err
+            console.error(`voiceAgent: ${model} failed:`, err instanceof Error ? err.message : err)
+            if (settled) return
+            if (!launch() && inFlight === 0) finish(() => reject(lastError))
+          },
+        )
+        return true
+      }
+      return false
+    }
+
+    if (!launch()) {
+      finish(() => reject(lastError))
+      return
+    }
+    timer.hedge = setTimeout(() => {
+      if (!settled && inFlight === 1) launch()
+    }, AGENT_HEDGE_AFTER_MS)
+  })
+}
+
+// The artisan's data is loaded up front (quick database reads, in
+// parallel) and given to the model as facts, so questions about schemes,
+// products or the catalogue are answered in ONE model call instead of a
+// tool round trip, and from the real data rather than a guess. Any read
+// that fails is simply left out; the tools still work.
+export type Facts = { text: string; schemes: SchemeItem[]; catalogueUrl: string | null }
+
+export async function loadFacts(data: AgentDataSource): Promise<Facts> {
+  const [schemes, profile, products] = await Promise.allSettled([data.findSchemes(null, null), data.getProfile(), data.listProducts()])
+  const lines: string[] = ['Facts you can use directly:']
+  const schemeItems = schemes.status === 'fulfilled' ? schemes.value : []
+  if (schemes.status === 'fulfilled') {
+    lines.push(schemeItems.length
+      ? `Open schemes and opportunities: ${schemeItems.map((x) => `${x.title} (${x.type}${x.deadline ? `, deadline ${x.deadline}` : ''})`).join('; ')}.`
+      : 'Open schemes and opportunities: none listed right now.')
+  }
+  const p = profile.status === 'fulfilled' ? profile.value : null
+  if (p) {
+    lines.push(`The artisan: ${[p.name, p.craft, p.state].filter(Boolean).join(', ') || 'details not filled in'}. Public catalogue link: ${p.catalogueUrl ?? 'not published yet (they can publish it from My Catalogue)'}.`)
+  }
+  if (products.status === 'fulfilled') {
+    const { total, items } = products.value
+    lines.push(total
+      ? `Their products (${total}): ${items.map((x) => `${x.name}${x.material ? ` in ${x.material}` : ''} (${x.hasListing ? 'has a listing' : 'needs a listing'})`).join('; ')}.`
+      : 'Their products: none added yet.')
+  }
+  return { text: lines.length > 1 ? lines.join('\n') : '', schemes: schemeItems, catalogueUrl: p?.catalogueUrl ?? null }
+}
+
+// Adds the cards an answer announced on its CARDS line (answers given
+// straight from the facts, without a tool call).
+export function attachCards(cards: string[], facts: Facts, actions: AgentAction[]) {
+  if (cards.includes('schemes') && facts.schemes.length && !actions.some((a) => a.type === 'schemes')) {
+    actions.push({ type: 'schemes', items: facts.schemes })
+  }
+  if (cards.includes('catalogue') && !actions.some((a) => a.type === 'catalogue')) {
+    actions.push({ type: 'catalogue', url: facts.catalogueUrl })
+  }
 }
 
 export async function runVoiceAgent(input: AgentInput): Promise<AgentResult> {
+  const started = Date.now()
+  const facts = await loadFacts(input.data)
+  try {
+    return await runGeminiAgent(input, facts, started + AGENT_GEMINI_BUDGET_MS)
+  } catch (geminiError) {
+    const fallback = await runGroqAgent(input, facts, started + AGENT_TOTAL_BUDGET_MS).catch((groqError) => {
+      console.error('voiceAgent: Groq fallback failed too:', groqError instanceof Error ? groqError.message : groqError)
+      return null
+    })
+    if (fallback) return fallback
+    throw geminiError
+  }
+}
+
+async function runGeminiAgent(input: AgentInput, facts: Facts, deadline: number): Promise<AgentResult> {
   const contents: Content[] = []
   for (const turn of (input.history ?? []).slice(-8)) {
     const text = str(turn?.content)
@@ -283,11 +400,10 @@ export async function runVoiceAgent(input: AgentInput): Promise<AgentResult> {
   const actions: AgentAction[] = []
   const toolsUsed: string[] = []
   let models = agentModels()
-  const deadline = Date.now() + AGENT_TOTAL_BUDGET_MS
 
   for (let step = 0; step < MAX_AGENT_STEPS; step++) {
     const { json, model } = await agentStep(models, {
-      systemInstruction: { parts: [{ text: systemPrompt(input.language) }] },
+      systemInstruction: { parts: [{ text: systemPrompt(input.language, facts.text) }] },
       contents,
       tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
       generationConfig: { maxOutputTokens: 4096 },
@@ -301,7 +417,8 @@ export async function runVoiceAgent(input: AgentInput): Promise<AgentResult> {
     if (calls.length === 0) {
       const text = modelParts.filter((p) => typeof p.text === 'string' && !p.thought).map((p) => p.text as string).join('').trim()
       if (!text) throw new Error(`voiceAgent: ${model} returned no answer`)
-      const { heard, reply } = parseAgentText(text)
+      const { heard, reply, cards } = parseAgentText(text)
+      attachCards(cards, facts, actions)
       return { heard: heard ?? typed, reply, actions, toolsUsed, model }
     }
 

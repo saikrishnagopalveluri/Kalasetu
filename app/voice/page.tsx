@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import RequireAuth from '@/components/RequireAuth'
 import { LANGUAGES, type LanguageId } from '@/lib/languages'
@@ -8,6 +8,7 @@ import { useLanguage } from '@/lib/LanguageProvider'
 import { useFollowingState } from '@/lib/useFollowingState'
 import { supabase } from '@/lib/supabase'
 import { bytesToBase64, encodeWav, peakLevel, toMono16k } from '@/lib/wav'
+import { deviceVoiceFor } from '@/lib/deviceVoice'
 import type { AgentAction } from '@/lib/voiceAgent'
 import type { TranslationKey } from '@/lib/translations'
 
@@ -101,6 +102,11 @@ function VoicePageInner() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const nextId = useRef(1)
 
+  // Some browsers only list their voices after being asked once.
+  useEffect(() => {
+    if ('speechSynthesis' in window) window.speechSynthesis.getVoices()
+  }, [])
+
   function stopSpeaking() {
     audioRef.current?.pause()
     audioRef.current = null
@@ -112,16 +118,24 @@ function VoicePageInner() {
     if (!('speechSynthesis' in window)) { setStatus('idle'); return }
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = language === 'en' ? 'en-IN' : `${language}-IN`
+    const voice = deviceVoiceFor(language)
+    if (voice) utterance.voice = voice
     utterance.onend = () => setStatus('idle')
     utterance.onerror = () => setStatus('idle')
+    window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
   }
 
-  // Gemini TTS first (natural voice in every Indian language); the
-  // phone's own voice if Gemini is busy or rate limited.
+  // The phone's own voice when it has one for this language: it starts
+  // speaking instantly. Gemini's voice (a few seconds to generate) is used
+  // for languages the phone has no voice for, so every language is heard.
   async function speak(text: string) {
     if (!speakReplies || !text) { setStatus('idle'); return }
     setStatus('speaking')
+    if (deviceVoiceFor(language)) {
+      speakWithDevice(text)
+      return
+    }
     try {
       const res = await fetch('/api/speak', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ text, language }), signal: AbortSignal.timeout(15_000) })
       if (!res.ok) throw new Error('speech unavailable')
