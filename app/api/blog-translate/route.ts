@@ -41,7 +41,7 @@ async function callAI(system: string, user: string): Promise<string | null> {
   // falls back to Gemini, then Claude, then Groq.
   if (isGeminiConfigured()) {
     try {
-      return (await gemmaText({ system, prompt: user, maxTokens: 6144 })).text
+      return (await gemmaText({ system, prompt: user, maxTokens: 6144, timeoutMs: 120_000 })).text
     } catch (err) {
       console.error('blog-translate: Gemma and Gemini failed, falling back to Claude:', err)
     }

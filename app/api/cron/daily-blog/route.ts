@@ -131,7 +131,7 @@ async function callAI(system: string, user: string, label: string): Promise<stri
   if (isGeminiConfigured()) {
     try {
       const generate = label === 'en-content' ? geminiText : gemmaText
-      return (await generate({ system, prompt: user, maxTokens: 6144 })).text
+      return (await generate({ system, prompt: user, maxTokens: 6144, timeoutMs: 120_000 })).text
     } catch (err) {
       console.error(`[daily-blog] ${label}: Gemini failed, falling back to Claude:`, err instanceof Error ? err.message : err)
     }

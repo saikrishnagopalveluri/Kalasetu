@@ -82,8 +82,8 @@ describe('geminiText', () => {
       ],
       maxTokens: 500,
     })
-    expect(result).toEqual({ text: 'Namaste', model: 'gemini-2.5-flash', usage: { input_tokens: 11, output_tokens: 7 } })
-    expect(sentUrl(fetchMock)).toContain('/models/gemini-2.5-flash:generateContent')
+    expect(result).toEqual({ text: 'Namaste', model: 'gemini-4-hydrogen', usage: { input_tokens: 11, output_tokens: 7 } })
+    expect(sentUrl(fetchMock)).toContain('/models/gemini-4-hydrogen:generateContent')
     const init = (fetchMock.mock.calls[0] as FetchCall)[1]
     expect((init.headers as Record<string, string>)['x-goog-api-key']).toBe('test-gemini-key')
     const body = sentBody(fetchMock)
@@ -126,7 +126,39 @@ describe('geminiText', () => {
     expect(sentUrl(fetchMock)).toContain('/models/gemini-next:generateContent')
   })
 
+  it('moves to the next Gemini model when one is overloaded or rate limited', async () => {
+    const fetchMock = stubFetch(httpError(503), httpError(429), geminiReply('from 3.8 flash'))
+    const { geminiText } = await import('@/lib/gemini')
+    const result = await geminiText({ prompt: 'x' })
+    expect(result).toMatchObject({ text: 'from 3.8 flash', model: 'gemini-3.8-flash' })
+    expect([0, 1, 2].map((i) => sentUrl(fetchMock, i).match(/models\/([^:]+)/)?.[1])).toEqual([
+      'gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash',
+    ])
+  })
+
+  it('reads a comma-separated model list from GEMINI_MODEL', async () => {
+    process.env.GEMINI_MODEL = 'model-a, model-b'
+    const fetchMock = stubFetch(httpError(500), geminiReply('b'))
+    const { geminiText } = await import('@/lib/gemini')
+    expect((await geminiText({ prompt: 'x' })).model).toBe('model-b')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not retry other models on a bad request', async () => {
+    const fetchMock = stubFetch(httpError(400, 'invalid argument'))
+    const { geminiText } = await import('@/lib/gemini')
+    await expect(geminiText({ prompt: 'x' })).rejects.toMatchObject({ status: 400 })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws the last error when every Gemini model fails', async () => {
+    stubFetch(httpError(503), httpError(503), httpError(429))
+    const { geminiText } = await import('@/lib/gemini')
+    await expect(geminiText({ prompt: 'x' })).rejects.toMatchObject({ status: 429 })
+  })
+
   it('ignores thought parts and throws on an empty answer', async () => {
+    process.env.GEMINI_MODEL = 'gemini-single'
     stubFetch({
       ok: true,
       json: async () => ({ candidates: [{ content: { parts: [{ text: 'thinking...', thought: true }] }, finishReason: 'MAX_TOKENS' }] }),
@@ -136,6 +168,7 @@ describe('geminiText', () => {
   })
 
   it('throws on HTTP errors and blocked prompts', async () => {
+    process.env.GEMINI_MODEL = 'gemini-single'
     stubFetch(httpError(429), { ok: true, json: async () => ({ promptFeedback: { blockReason: 'SAFETY' } }) })
     const { geminiText } = await import('@/lib/gemini')
     await expect(geminiText({ prompt: 'x' })).rejects.toMatchObject({ status: 429 })
@@ -157,7 +190,7 @@ describe('gemmaText', () => {
     const fetchMock = stubFetch(geminiReply('translated'))
     const { gemmaText } = await import('@/lib/gemini')
     const result = await gemmaText({ system: 'Translate to Telugu', prompt: 'Hello' })
-    expect(result.model).toBe('gemma-3-27b-it')
+    expect(result.model).toBe('gemma-4-26b-a4b-it')
     const body = sentBody(fetchMock)
     expect(body.systemInstruction).toBeUndefined()
     expect(body.contents[0].parts.map((p: { text: string }) => p.text)).toEqual(['Translate to Telugu\n\n', 'Hello'])
@@ -167,7 +200,7 @@ describe('gemmaText', () => {
     const fetchMock = stubFetch(httpError(503), geminiReply('from gemini'))
     const { gemmaText } = await import('@/lib/gemini')
     expect((await gemmaText({ prompt: 'x' })).text).toBe('from gemini')
-    expect(sentUrl(fetchMock, 1)).toContain('gemini-2.5-flash')
+    expect(sentUrl(fetchMock, 1)).toContain('gemini-4-hydrogen')
   })
 })
 
@@ -182,7 +215,7 @@ describe('geminiImage (Nano Banana)', () => {
     const { geminiImage } = await import('@/lib/gemini')
     const result = await geminiImage({ prompt: 'festive marigold setting', refImageDataUrl: 'data:image/jpeg;base64,PHOTO' })
     expect(result).toEqual({ imageDataUrl: 'data:image/png;base64,IMG', provider: 'gemini' })
-    expect(sentUrl(fetchMock)).toContain('/models/gemini-2.5-flash-image:generateContent')
+    expect(sentUrl(fetchMock)).toContain('/models/gemini-3.1-flash-image:generateContent')
     const [photo, instruction] = sentBody(fetchMock).contents[0].parts
     expect(photo).toEqual({ inlineData: { mimeType: 'image/jpeg', data: 'PHOTO' } })
     expect(instruction.text).toMatch(/Keep the product itself exactly as it is/)

@@ -10,22 +10,34 @@
 
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-// Model ids are env-overridable so a newer model can be switched in from
-// Vercel settings without a code change.
+// Text requests walk a list of Gemini models, newest first: the newest
+// models are often briefly overloaded (503) or rate limited (429), and an
+// older Gemini model answering is better than leaving Google entirely.
+// Every id is env-overridable (comma-separated for the text list) so
+// models can be changed from Vercel settings without a code change.
+const DEFAULT_TEXT_MODELS = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash']
+
+function modelList(value: string | undefined, fallback: string[]): string[] {
+  const list = (value ?? '').split(',').map((m) => m.trim()).filter(Boolean)
+  return list.length > 0 ? list : fallback
+}
+
 export const GEMINI_MODELS = {
-  get text() {
-    return process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+  get text(): string[] {
+    return modelList(process.env.GEMINI_MODEL, DEFAULT_TEXT_MODELS)
   },
   get image() {
-    return process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image'
+    return process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image'
   },
   get gemma() {
-    return process.env.GEMMA_MODEL || 'gemma-3-27b-it'
+    return process.env.GEMMA_MODEL || 'gemma-4-26b-a4b-it'
   },
 }
 
-const TEXT_TIMEOUT_MS = 60_000
-const IMAGE_TIMEOUT_MS = 90_000
+// Per model attempt. Short by default so an overloaded model hands over
+// to the next one quickly; long-form callers (blog articles) pass more.
+const TEXT_TIMEOUT_MS = 25_000
+const IMAGE_TIMEOUT_MS = 60_000
 
 // Thinking models spend part of maxOutputTokens on reasoning before they
 // write the answer, so a tight cap can come back empty. Extra headroom
@@ -56,7 +68,10 @@ export type GeminiTextOptions = {
   messages?: ChatMessage[]
   maxTokens?: number
   json?: boolean
+  // A single specific model. Without it, the GEMINI_MODELS.text list is
+  // tried in order.
   model?: string
+  timeoutMs?: number
 }
 
 export type GeminiTextResult = {
@@ -137,7 +152,24 @@ function responseParts(json: GeminiResponse): Record<string, unknown>[] {
 }
 
 export async function geminiText(opts: GeminiTextOptions): Promise<GeminiTextResult> {
-  const model = opts.model ?? GEMINI_MODELS.text
+  const models = opts.model ? [opts.model] : GEMINI_MODELS.text
+  let lastError: unknown
+  for (const model of models) {
+    try {
+      return await geminiTextWithModel(model, opts)
+    } catch (err) {
+      lastError = err
+      // A bad request is our fault and will fail on every model alike.
+      if (err instanceof GeminiError && err.status === 400) throw err
+      if (models.length > 1) {
+        console.error(`Gemini ${model} failed, trying the next Gemini model:`, err instanceof Error ? err.message : err)
+      }
+    }
+  }
+  throw lastError
+}
+
+async function geminiTextWithModel(model: string, opts: GeminiTextOptions): Promise<GeminiTextResult> {
   const isGemma = model.startsWith('gemma')
   const contents = opts.messages ? toGeminiContents(opts.messages) : []
   if (opts.prompt) contents.push({ role: 'user', parts: [{ text: opts.prompt }] })
@@ -160,7 +192,7 @@ export async function geminiText(opts: GeminiTextOptions): Promise<GeminiTextRes
   if (opts.json && !isGemma) generationConfig.responseMimeType = 'application/json'
   body.generationConfig = generationConfig
 
-  const json = (await callGenerateContent(model, body, TEXT_TIMEOUT_MS)) as GeminiResponse
+  const json = (await callGenerateContent(model, body, opts.timeoutMs ?? TEXT_TIMEOUT_MS)) as GeminiResponse
   const text = responseParts(json)
     .filter((p) => typeof p.text === 'string' && !p.thought)
     .map((p) => p.text as string)

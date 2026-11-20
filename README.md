@@ -35,20 +35,22 @@ All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), wh
 
 | Feature | Google model | Where | Fallback |
 |---|---|---|---|
-| AI Photoshoot | **Nano Banana** (`gemini-2.5-flash-image`) edits the artisan's real phone photo into a studio, heritage or festival scene and is told to keep the product itself unchanged | `lib/imageProviders.ts`, `/api/photoshoot` | Hugging Face, Cloudflare, Pixazo, Stability, Pollinations |
+| AI Photoshoot | **Nano Banana 2** (`gemini-3.1-flash-image`) edits the artisan's real phone photo into a studio, heritage or festival scene and is told to keep the product itself unchanged | `lib/imageProviders.ts`, `/api/photoshoot` | Hugging Face, Cloudflare, Pixazo, Stability, Pollinations |
 | Design Studio images | **Nano Banana** | `/api/design-image` | same chain |
-| Listings, craft story, captions, WhatsApp and Facebook posts, B2B catalogue entries | **Gemini** (`gemini-2.5-flash`), multimodal, so a product photo can be sent with the request | `/api/ai` | Claude, then Groq |
+| Listings, craft story, captions, WhatsApp and Facebook posts, B2B catalogue entries | **Gemini 4 Hydrogen** (`gemini-4-hydrogen`), multimodal, so a product photo can be sent with the request | `/api/ai` | Claude, then Groq |
 | Pricing Assistant and Business Coach | **Gemini**, answering in the artisan's chosen language | `/api/ai` (`pricing`, `coach` modes) | Claude, then Groq |
 | Design inspiration | **Gemini** with JSON output | `/api/ai` (`design_inspiration`) | Claude, then Groq |
 | Story quality gate (7 scores) | **Gemini** with JSON output, validated on the server before a story can publish | `lib/storyEvaluator.ts` | Claude, then Groq |
 | Government Scheme Navigator | **Gemini** with JSON output reads official scheme pages and extracts title, type and deadline for admin review | `/api/admin/scrape-schemes`, scheme cron | Claude, then Groq |
 | Story translation | **Gemini** | `/api/story-translate` | Claude, then Groq |
-| Bulk blog translation into 22 languages | **Gemma** (`gemma-3-27b-it`), the low-cost model for high-volume work | `/api/blog-translate`, daily blog cron | Gemini, Claude, Groq |
+| Bulk blog translation into 22 languages | **Gemma 4** (`gemma-4-26b-a4b-it`), the low-cost model for high-volume work | `/api/blog-translate`, daily blog cron | Gemini, Claude, Groq |
 
 How the layer works:
 
+- **Several Gemini models before any fallback.** Text requests try Gemini 4 Hydrogen, then Gemini 3.1 Flash-Lite, then Gemini 3.8 Flash, each with a short timeout, so a briefly overloaded model (503) or a rate limit (429) hands over to another Gemini model in seconds. Claude and Groq are only used if every Gemini model fails.
 - **One key, three model families.** Gemini, Nano Banana and Gemma all run through the same Gemini API key (`GEMINI_API_KEY`). Model ids can be changed from environment variables (`GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL`) without a code change.
 - **Structured output.** Features that need data, not prose (story scores, scheme extraction, design ideas), ask Gemini for JSON, and the server validates it before using it. An invalid answer falls through to the next provider instead of failing the artisan.
+- **Image quota.** Nano Banana image generation needs a Gemini API project with billing enabled; on the free tier its quota is zero, and the photoshoot automatically uses the fallback image chain until billing is turned on. No code change is needed when it is.
 - **Fails safe.** Every call has a timeout. If Gemini is unavailable, rate limited or not configured, the feature silently uses the fallback provider. Gemini's own error text is logged on the server and never sent to the browser.
 - **Tested.** `tests/gemini.test.ts` checks the request sent to Google (system prompt, chat history, image data, JSON mode, model choice), the Nano Banana "keep the product unchanged" instruction, Gemma's fallback to Gemini, and that `/api/ai` and the story evaluator use Gemini first and fall back only when it fails.
 
@@ -106,7 +108,7 @@ Set these in `.env.local` for local development, and in the Vercel project setti
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (safe for the browser) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only key that bypasses Row Level Security. Never expose to the client. |
 | `GEMINI_API_KEY` | Primary AI provider: Gemini, Nano Banana and Gemma (free key from Google AI Studio) |
-| `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL` | Optional model overrides. Defaults: `gemini-2.5-flash`, `gemini-2.5-flash-image`, `gemma-3-27b-it` |
+| `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL` | Optional model overrides. `GEMINI_MODEL` takes a comma-separated list tried in order. Defaults: `gemini-4-hydrogen,gemini-3.1-flash-lite,gemini-3.8-flash`, `gemini-3.1-flash-image`, `gemma-4-26b-a4b-it` |
 | `ANTHROPIC_API_KEY` | First fallback AI text provider |
 | `GROQ_API_KEY` | Second fallback AI text provider |
 | `HF_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `PIXAZO_API_KEY`, `STABILITY_API_KEY`, `POLLINATIONS_API_TOKEN` | Image generation providers (fallback chain; only configured providers are used) |
