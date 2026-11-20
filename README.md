@@ -1,8 +1,36 @@
-# Hastkatha / KalaSetu
+# KalaSetu
 
-An AI-powered digital business platform for traditional Indian artisans: AI-written product descriptions, AI-generated product photography, a shareable public catalogue, a directory of government schemes and opportunities, and a multilingual blog, all in 23 languages.
+KalaSetu helps traditional Indian artisans sell their work online from a phone, in their own language. An artisan can talk to it in Telugu or Hindi, get a fair price for a saree, a studio-style product photo, a listing and a WhatsApp catalogue, and find the government schemes meant for them.
 
-This one codebase and database serves two separately-branded, separately-deployed products — see "Multi-brand deployment" below.
+Live: **https://kalasetu-six.vercel.app** (redirects to kalasetu-art.vercel.app)
+
+The same codebase also runs a second brand, Hastkatha; see "Multi-brand deployment" below.
+
+## For judges: try it in 3 minutes
+
+1. **Talk to Saathi** (home screen, or `/voice`). Tap the mic and ask, in any Indian language: "My saree's materials cost 1500 rupees and took 20 hours. What should I charge?" Gemini hears the audio, calls the pricing tool and answers aloud. Then try "Are there schemes for weavers?" and "Open the photoshoot".
+2. **Photoshoot** (`/studio`). Upload a phone photo of a product. Gemini studies the photo and art-directs the image so the result shows that product, not a generic one.
+3. **Catalogue** (`/catalogue`). Pick a language such as Telugu: the headings and every product name and description come out in that language, ready to share on WhatsApp or download as PDF, PowerPoint or Word.
+4. Switch the language from the header: every screen is translated into all 23 of India's scheduled languages plus English.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  A[Artisan's phone<br/>Next.js PWA, 23 languages] -->|voice, photo, text| API[Next.js API routes on Vercel<br/>auth, rate limits, validation]
+  API --> G[lib/gemini.ts<br/>one key, model fallback, timeouts]
+  G --> GT[Gemini 4 Hydrogen / 3.1 Flash-Lite / 3.8 Flash<br/>listings, pricing, coach, JSON scoring]
+  G --> GA[Gemini audio + function calling<br/>Saathi Voice Agent]
+  G --> GS[Gemini TTS<br/>spoken replies]
+  G --> GG[Gemini + Google Search grounding<br/>live schemes with sources]
+  G --> NB[Nano Banana 2<br/>photo editing]
+  G --> GM[Gemma 4<br/>bulk translation]
+  GA --> T[Tools: fair price, schemes,<br/>my products, catalogue link, open screen]
+  T --> DB[(Supabase Postgres<br/>Row Level Security)]
+  API --> FB[Fallbacks: Claude, Groq,<br/>5 free image providers]
+```
+
+Every AI call goes through one server-only module and has a fallback, so an outage or quota limit never reaches the artisan as an error. Tools the voice agent can call only read the signed-in artisan's own data or public listings; prices always come from a deterministic calculator, never from the model.
 
 ## Chosen vertical
 
@@ -67,6 +95,7 @@ All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), wh
 | Pricing Assistant and Business Coach | **Gemini**, answering in the artisan's chosen language | `/api/ai` (`pricing`, `coach` modes) | Claude, then Groq |
 | Design inspiration | **Gemini** with JSON output | `/api/ai` (`design_inspiration`) | Claude, then Groq |
 | Story quality gate (7 scores) | **Gemini** with JSON output, validated on the server before a story can publish | `lib/storyEvaluator.ts` | Claude, then Groq |
+| Live scheme answers | **Gemini with Google Search grounding** answers "what's new for weavers in Telangana?" with links to its sources, inside the voice agent | `lib/gemini.ts` (`geminiGrounded`), `lib/voiceAgent.ts` | The admin-approved scheme list |
 | Government Scheme Navigator | **Gemini** with JSON output reads official scheme pages and extracts title, type and deadline for admin review | `/api/admin/scrape-schemes`, scheme cron | Claude, then Groq |
 | Story translation | **Gemini** | `/api/story-translate` | Claude, then Groq |
 | Saathi Voice Agent | **Gemini** audio understanding and function calling, plus **Gemini TTS** (`gemini-3.8-flash-tts`) for spoken replies | `/api/voice-agent`, `/api/speak` | Next Gemini model; the phone's own voice for speech |
@@ -77,7 +106,7 @@ How the layer works:
 - **Several Gemini models before any fallback.** Text requests try Gemini 4 Hydrogen, then Gemini 3.1 Flash-Lite, then Gemini 3.8 Flash, each with a short timeout, so a briefly overloaded model (503) or a rate limit (429) hands over to another Gemini model in seconds. Claude and Groq are only used if every Gemini model fails.
 - **One key, three model families.** Gemini, Nano Banana and Gemma all run through the same Gemini API key (`GEMINI_API_KEY`). Model ids can be changed from environment variables (`GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL`) without a code change.
 - **Structured output.** Features that need data, not prose (story scores, scheme extraction, design ideas), ask Gemini for JSON, and the server validates it before using it. An invalid answer falls through to the next provider instead of failing the artisan.
-- **Image quota.** Nano Banana image generation needs a Gemini API project with billing enabled; on the free tier its quota is zero, and the photoshoot automatically uses the fallback image chain until billing is turned on. No code change is needed when it is.
+- **Quota.** Nano Banana image generation and Google Search grounding need a Gemini API project with billing enabled; on the free tier its quota is zero, until billing is on, the photoshoot uses the fallback image chain and the voice agent answers schemes from the approved list. No code change is needed when billing is turned on.
 - **Fails safe.** Every call has a timeout. If Gemini is unavailable, rate limited or not configured, the feature silently uses the fallback provider. Gemini's own error text is logged on the server and never sent to the browser.
 - **Tested.** `tests/gemini.test.ts` checks the request sent to Google (system prompt, chat history, image data, JSON mode, model choice), the Nano Banana "keep the product unchanged" instruction, Gemma's fallback to Gemini, and that `/api/ai` and the story evaluator use Gemini first and fall back only when it fails.
 
@@ -102,11 +131,11 @@ Two Vercel projects deploy this same repo, differing only in the `NEXT_PUBLIC_BR
 | `kalasetu` | `kalasetu` | kalasetu-six.vercel.app | "KalaSetu" |
 | `hastkatha` | `hastkatha` | hastkatha.vercel.app | "Hastkatha" |
 
-`lib/brand.ts` reads that env var and exports `BRAND` (name, fallback URL, support email). Every page title, meta tag, JSON-LD entity, AI system prompt, and PWA manifest pulls the brand name from there rather than hardcoding either name — `tests/branding.test.ts` enforces this. `lib/translations.ts` uses a `{{BRAND}}` placeholder, substituted at read time in `getTranslations()`, instead of duplicating every UI string per brand.
+`lib/brand.ts` reads that env var and exports `BRAND` (name, fallback URL, support email). Every page title, meta tag, JSON-LD entity, AI system prompt, and PWA manifest pulls the brand name from there rather than hardcoding either name, `tests/branding.test.ts` enforces this. `lib/translations.ts` uses a `{{BRAND}}` placeholder, substituted at read time in `getTranslations()`, instead of duplicating every UI string per brand.
 
-The single scheduled cron job (`api/cron/daily`) registers on both projects but only actually runs on the `hastkatha` deployment — see the `BRAND_ID` guard. This is deliberate: both brands share one Supabase database, so running it from both deployments would insert every post and every scraped opportunity twice.
+The single scheduled cron job (`api/cron/daily`) registers on both projects but only actually runs on the `hastkatha` deployment. See the `BRAND_ID` guard. This is deliberate: both brands share one Supabase database, so running it from both deployments would insert every post and every scraped opportunity twice.
 
-`hello@kalasetu.in` is never used anywhere in this codebase, for either brand. `kalasetu.in` is the live domain of a real, unrelated business — not ours (this project was renamed from KalaSetu to Hastkatha for exactly this reason; see the AI Build Log). Both brands share the one real support address, `hello@hastkatha.in`, until each has its own domain and inbox.
+`hello@kalasetu.in` is never used anywhere in this codebase, for either brand. `kalasetu.in` is the live domain of a real, unrelated business, not ours (this project was renamed from KalaSetu to Hastkatha for exactly this reason; see the AI Build Log). Both brands share the one real support address, `hello@hastkatha.in`, until each has its own domain and inbox.
 
 Adding a new custom domain to either brand: `npx vercel domains add <domain>` while linked to the right project (`npx vercel link --project kalasetu` or `--project hastkatha`), then update that project's `NEXT_PUBLIC_APP_URL`.
 
@@ -127,7 +156,7 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You will need a `.env.local` file — see Environment variables below.
+Open [http://localhost:3000](http://localhost:3000). You will need a `.env.local` file. See Environment variables below.
 
 ## Environment variables
 
@@ -147,14 +176,14 @@ Set these in `.env.local` for local development, and in the Vercel project setti
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Payments |
 | `CRON_SECRET` | Bearer token required by all cron endpoints (the scheduled one and the two directly-callable ones) |
 | `NEXT_PUBLIC_APP_URL` | Canonical site URL, used in the sitemap, robots.txt, and structured data |
-| `NEXT_PUBLIC_BRAND` | `kalasetu` or `hastkatha` — picks which brand this deployment renders as. See "Multi-brand deployment" above. |
+| `NEXT_PUBLIC_BRAND` | `kalasetu` or `hastkatha`, which picks which brand this deployment renders as. See "Multi-brand deployment" above. |
 
 ## Scheduled jobs
 
 `vercel.json` registers exactly one cron entry, `api/cron/daily` (Vercel's Hobby plan allows only one cron job per account). It alternates by day of year: scheme scraping on even days, the blog on odd days, each still gated by `CRON_SECRET` and the `BRAND_ID` guard.
 
-- `api/cron/daily-blog` — writes and publishes one blog post with a header image, then translates it into all supported languages. Still directly callable on its own (same `CRON_SECRET`) for a manual run regardless of the day.
-- `api/cron/scrape-schemes` — crawls configured government/scheme sources and publishes new opportunities. Also still directly callable on its own.
+- `api/cron/daily-blog`: writes and publishes one blog post with a header image, then translates it into all supported languages. Still directly callable on its own (same `CRON_SECRET`) for a manual run regardless of the day.
+- `api/cron/scrape-schemes`: crawls configured government/scheme sources and publishes new opportunities. Also still directly callable on its own.
 
 ## Testing
 
@@ -183,4 +212,4 @@ SQL migrations live in `supabase/`, numbered in the order they were applied. Run
 npx vercel --prod --yes
 ```
 
-Requires `.npmrc` with `legacy-peer-deps=true` (already committed) — Vercel's build will fail without it, due to a peer-dependency conflict introduced by the test suite's dependencies.
+Requires `.npmrc` with `legacy-peer-deps=true` (already committed). Vercel's build will fail without it, due to a peer-dependency conflict introduced by the test suite's dependencies.

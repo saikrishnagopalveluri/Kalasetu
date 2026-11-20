@@ -6,7 +6,7 @@
 // public scheme listings) and never write anything, so a misheard request
 // can at worst show the wrong screen, never change or leak data.
 
-import { callGenerateContent, responseParts, type GeminiResponse } from './gemini'
+import { callGenerateContent, geminiGrounded, responseParts, type GeminiResponse, type GroundedSource } from './gemini'
 import { calculateFairPrice } from './fairPrice'
 import { languageName } from './languages'
 import { BRAND } from './brand'
@@ -46,6 +46,7 @@ export type AgentAction =
   | { type: 'price'; result: ReturnType<typeof calculateFairPrice> }
   | { type: 'schemes'; items: SchemeItem[] }
   | { type: 'catalogue'; url: string | null }
+  | { type: 'web'; answer: string; sources: GroundedSource[] }
 
 export type SchemeItem = { title: string; type: string; deadline: string | null; url: string }
 
@@ -102,6 +103,15 @@ const FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'search_schemes_online',
+    description: 'Search the web live with Google Search for current government schemes, subsidies, loans, exhibitions or deadlines for artisans. Use it when the artisan asks about something new or recent, or when find_schemes returned nothing useful.',
+    parameters: {
+      type: 'object',
+      properties: { question: { type: 'string', description: 'What to look up, in English, including the craft and state if known' } },
+      required: ['question'],
+    },
+  },
+  {
     name: 'get_my_products',
     description: "List the artisan's own products and whether each already has a written listing.",
     parameters: { type: 'object', properties: {} },
@@ -126,7 +136,7 @@ function systemPrompt(language: string | undefined): string {
   const lang = languageName(language)
   return `You are ${BRAND.name} Saathi, a voice assistant for traditional Indian artisans. Artisans talk to you, often in a regional language and often with little reading or typing, so your reply will be read aloud.
 
-- Use your tools to actually help: price questions go through suggest_fair_price, scheme or support questions through find_schemes, "my products" through get_my_products, catalogue or sharing questions through get_my_profile, and when the artisan wants to do something in the app, open_screen.
+- Use your tools to actually help: price questions go through suggest_fair_price, scheme or support questions through find_schemes first (then search_schemes_online for anything new, recent or missing), "my products" through get_my_products, catalogue or sharing questions through get_my_profile, and when the artisan wants to do something in the app, open_screen.
 - Call the tool in this same turn. Never say you will look something up, check, or find something later: either call the tool now or answer.
 - Never invent prices, schemes, deadlines or links. Only use numbers and names the tools return. If a tool returns nothing, say so honestly.
 - Speak plainly, like a friendly person who knows crafts. 2 to 4 short sentences. No markdown, no lists, no symbols, no emojis, because this is spoken aloud. Say amounts as rupees.
@@ -164,6 +174,21 @@ async function runTool(name: string, args: Record<string, unknown>, data: AgentD
       const items = await data.findSchemes(keyword, type && ['scheme', 'competition', 'tradeshow'].includes(type) ? type : null)
       if (items.length > 0) actions.push({ type: 'schemes', items })
       return { count: items.length, items }
+    }
+    case 'search_schemes_online': {
+      const question = str(args.question)
+      if (!question) return { error: 'A question is required' }
+      try {
+        const { text, sources } = await geminiGrounded({
+          prompt: `${question.slice(0, 400)}\n\nAnswer for an Indian artisan in 3 to 5 plain sentences: name each scheme, who can apply and how. Only state what the sources say.`,
+          timeoutMs: 20_000,
+        })
+        actions.push({ type: 'web', answer: text, sources })
+        return { answer: text, sources }
+      } catch (err) {
+        console.error('voiceAgent: live search unavailable:', err instanceof Error ? err.message : err)
+        return { error: 'Live web search is not available right now. Answer from find_schemes results only.' }
+      }
     }
     case 'get_my_products':
       return data.listProducts()

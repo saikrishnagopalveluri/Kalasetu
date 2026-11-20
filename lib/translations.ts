@@ -858,6 +858,9 @@ const translations = {
     "publicPage.handcraftedBy": "Handcrafted by",
     "publicPage.pieces": "pieces",
     "publicPage.aboutMe": "About me",
+    "voice.liveSources": "Live from Google Search",
+    "voice.poweredBy": "Powered by Google Gemini",
+    "studio.artDirected": "Gemini studied your photo to match this to your product",
   },
   hi: {
     "nav.home": "होम",
@@ -1700,6 +1703,9 @@ const translations = {
     "publicPage.handcraftedBy": "हाथ से बनाया गया:",
     "publicPage.pieces": "नग",
     "publicPage.aboutMe": "मेरे बारे में",
+    "voice.liveSources": "Google Search से सीधे",
+    "voice.poweredBy": "Google Gemini द्वारा संचालित",
+    "studio.artDirected": "Gemini ने आपकी फोटो देखकर इसे आपके सामान के हिसाब से तैयार किया है",
   },
   te: {
     "nav.home": "హోమ్",
@@ -2542,6 +2548,9 @@ const translations = {
     "publicPage.handcraftedBy": "చేతితో తయారు చేసినవారు",
     "publicPage.pieces": "పీసులు",
     "publicPage.aboutMe": "నా గురించి",
+    "voice.liveSources": "Google సెర్చ్ నుండి లైవ్",
+    "voice.poweredBy": "Google Gemini ద్వారా నడుపబడుతోంది",
+    "studio.artDirected": "మీ వస్తువుకు సరిపోయేలా Gemini మీ ఫోటోను చూసి అర్థం చేసుకుంది",
   },
   bn: {
     "nav.home": "হোম",
@@ -3384,6 +3393,9 @@ const translations = {
     "publicPage.handcraftedBy": "হাতে তৈরি করেছেন",
     "publicPage.pieces": "টি",
     "publicPage.aboutMe": "আমার সম্পর্কে",
+    "voice.liveSources": "Google Search থেকে সরাসরি",
+    "voice.poweredBy": "Google Gemini দ্বারা পরিচালিত",
+    "studio.artDirected": "আপনার পণ্যের সাথে মেলানোর জন্য Gemini আপনার ছবি দেখেছে",
   },
   mr: {
     "nav.home": "होम",
@@ -4226,6 +4238,9 @@ const translations = {
     "publicPage.handcraftedBy": "यांनी हाताने बनवले",
     "publicPage.pieces": "नग",
     "publicPage.aboutMe": "माझ्याबद्दल",
+    "voice.liveSources": "Google Search वरून थेट माहिती",
+    "voice.poweredBy": "Google Gemini द्वारे समर्थित",
+    "studio.artDirected": "तुमच्या उत्पादनाशी जुळवण्यासाठी Gemini ने तुमच्या फोटोचा अभ्यास केला आहे",
   },
   ta: {
     "nav.home": "முகப்பு",
@@ -5068,6 +5083,9 @@ const translations = {
     "publicPage.handcraftedBy": "கைவேலை செய்தவர்",
     "publicPage.pieces": "பொருட்கள்",
     "publicPage.aboutMe": "என்னை பற்றி",
+    "voice.liveSources": "Google Search-லிருந்து நேரலையாக",
+    "voice.poweredBy": "Google Gemini மூலம் இயங்குகிறது",
+    "studio.artDirected": "உங்க பொருளுக்கு ஏத்த மாதிரி இருக்கணும்னு Gemini உங்க போட்டோவை பார்த்து செஞ்சிருக்கு",
   },
   ur: {
     "nav.home": "ہوم",
@@ -5910,6 +5928,9 @@ const translations = {
     "publicPage.handcraftedBy": "ہاتھ سے بنایا گیا از",
     "publicPage.pieces": "پیس",
     "publicPage.aboutMe": "میرے بارے میں",
+    "voice.liveSources": "Google Search سے براہِ راست",
+    "voice.poweredBy": "Google Gemini کی مدد سے تیار کردہ",
+    "studio.artDirected": "Gemini نے آپ کی تصویر کو دیکھ کر اسے آپ کی مصنوعات کے مطابق ترتیب دیا ہے",
   },
   gu: {
     "nav.home": "હોમ",
@@ -6752,6 +6773,9 @@ const translations = {
     "publicPage.handcraftedBy": "હાથે બનાવેલી:",
     "publicPage.pieces": "નંગ",
     "publicPage.aboutMe": "મારા વિશે",
+    "voice.liveSources": "Google Search પરથી સીધું",
+    "voice.poweredBy": "Google Gemini દ્વારા સંચાલિત",
+    "studio.artDirected": "તમારી પ્રોડક્ટ સાથે મેળ બેસાડવા માટે Gemini એ તમારા ફોટાને તપાસ્યો છે",
   },
   kn: {
     "nav.home": "ಮುಖಪುಟ",
@@ -7594,6 +7618,9 @@ const translations = {
     "publicPage.handcraftedBy": "ಕೈಯಿಂದ ತಯಾರಿಸಿದವರು",
     "publicPage.pieces": "ತುಂಡುಗಳು",
     "publicPage.aboutMe": "ನನ್ನ ಬಗ್ಗೆ",
+    "voice.liveSources": "Google Search ನಿಂದ ನೇರ ಮಾಹಿತಿ",
+    "voice.poweredBy": "Google Gemini ಇಂದ ನಡೆಸಲ್ಪಡುತ್ತದೆ",
+    "studio.artDirected": "ನಿಮ್ಮ ಉತ್ಪನ್ನಕ್ಕೆ ತಕ್ಕಂತೆ ಹೊಂದಿಸಲು Gemini ನಿಮ್ಮ ಫೋಟೋವನ್ನು ಪರಿಶೀಲಿಸಿದೆ",
   },
   or: {
     "nav.home": "ହୋମ",
@@ -8436,6 +8463,9 @@ const translations = {
     "publicPage.handcraftedBy": "ହାତରେ ତିଆରି କରିଛନ୍ତି",
     "publicPage.pieces": "ଟି",
     "publicPage.aboutMe": "ମୋ ବିଷୟରେ",
+    "voice.liveSources": "Google Search ରୁ ସିଧା",
+    "voice.poweredBy": "Google Gemini ଦ୍ୱାରା ପରିଚାଳିତ",
+    "studio.artDirected": "ଆପଣଙ୍କ ପ୍ରଡକ୍ଟ ସହିତ ମେଳ କରିବା ପାଇଁ Gemini ଆପଣଙ୍କ ଫଟୋକୁ ଦେଖିଛି",
   },
   pa: {
     "nav.home": "ਹੋਮ",
@@ -9278,6 +9308,9 @@ const translations = {
     "publicPage.handcraftedBy": "ਹੱਥੀਂ ਬਣਾਇਆ",
     "publicPage.pieces": "ਨਗ",
     "publicPage.aboutMe": "ਮੇਰੇ ਬਾਰੇ",
+    "voice.liveSources": "Google Search ਤੋਂ ਸਿੱਧਾ",
+    "voice.poweredBy": "Google Gemini ਦੁਆਰਾ ਚਲਾਇਆ ਗਿਆ",
+    "studio.artDirected": "Gemini ਨੇ ਤੁਹਾਡੀ ਫੋਟੋ ਨੂੰ ਦੇਖ ਕੇ ਇਸ ਨੂੰ ਤੁਹਾਡੇ ਉਤਪਾਦ ਨਾਲ ਮਿਲਾਇਆ ਹੈ",
   },
   ml: {
     "nav.home": "ഹോം",
@@ -10120,6 +10153,9 @@ const translations = {
     "publicPage.handcraftedBy": "കൈകൊണ്ട് നിർമ്മിച്ചത്",
     "publicPage.pieces": "എണ്ണം",
     "publicPage.aboutMe": "എന്നെക്കുറിച്ച്",
+    "voice.liveSources": "Google Search-ൽ നിന്നുള്ള തത്സമയ വിവരങ്ങൾ",
+    "voice.poweredBy": "Google Gemini നൽകുന്ന സേവനം",
+    "studio.artDirected": "നിങ്ങളുടെ ഉൽപ്പന്നവുമായി പൊരുത്തപ്പെടാൻ Gemini നിങ്ങളുടെ ചിത്രം പരിശോധിച്ചു",
   },
   as: {
     "nav.home": "গৃহ",
@@ -10962,6 +10998,9 @@ const translations = {
     "publicPage.handcraftedBy": "হাতে তৈয়াৰ কৰা শিল্পী",
     "publicPage.pieces": "পিছ",
     "publicPage.aboutMe": "মোৰ বিষয়ে",
+    "voice.liveSources": "Google Search-ৰ পৰা পোৱা লাইভ তথ্য",
+    "voice.poweredBy": "Google Gemini-ৰ সহায়ত চলিছে",
+    "studio.artDirected": "আপোনাৰ সামগ্ৰীটোৰ সৈতে মিলিবলৈ Gemini-এ আপোনাৰ ফটোখন ভালদৰে চাই লৈছে",
   },
   ne: {
     "nav.home": "होम",
@@ -11804,6 +11843,9 @@ const translations = {
     "publicPage.handcraftedBy": "हातेकाम गर्ने कलाकार",
     "publicPage.pieces": "वटा",
     "publicPage.aboutMe": "मेरो बारेमा",
+    "voice.liveSources": "Google Search बाट सिधै",
+    "voice.poweredBy": "Google Gemini द्वारा संचालित",
+    "studio.artDirected": "तपाईंको सामानसँग मिल्दो बनाउन Gemini ले तपाईंको फोटोलाई राम्ररी हेरेको छ",
   },
   sa: {
     "nav.home": "गृहम्",
@@ -12646,6 +12688,9 @@ const translations = {
     "publicPage.handcraftedBy": "निर्मितं द्वारा",
     "publicPage.pieces": "नगाः",
     "publicPage.aboutMe": "मम विषये",
+    "voice.liveSources": "Google Search इत्यस्मात् साक्षात्",
+    "voice.poweredBy": "Google Gemini द्वारा चालितम्",
+    "studio.artDirected": "तव उत्पादस्य अनुरूपं कर्तुं Gemini इत्यनेन तव चित्रं दृष्टम्",
   },
   gom: {
     "nav.home": "मुखपान",
@@ -13488,6 +13533,9 @@ const translations = {
     "publicPage.handcraftedBy": "ह्यांनी हाताने बनवले",
     "publicPage.pieces": "नग",
     "publicPage.aboutMe": "माझ्याबद्दल",
+    "voice.liveSources": "Google Search थावन थेट",
+    "voice.poweredBy": "Google Gemini चो आधार",
+    "studio.artDirected": "तुमच्या वस्तू सावन जुळोवपा खातीर Gemini न तुमच्या फोटोचो अभ्यास केला",
   },
   sd: {
     "nav.home": "هوم",
@@ -14330,6 +14378,9 @@ const translations = {
     "publicPage.handcraftedBy": "هٿ جو ٺهيل، ڪارگر:",
     "publicPage.pieces": "پيس",
     "publicPage.aboutMe": "منهنجي باري ۾",
+    "voice.liveSources": "گوگل سرچ تان سڌو",
+    "voice.poweredBy": "گوگل Gemini جي مدد سان",
+    "studio.artDirected": "Gemini توهان جي تصوير ڏسي هن کي توهان جي پيداوار سان ملائي ڇڏيو آهي",
   },
   mai: {
     "nav.home": "होम",
@@ -15172,6 +15223,9 @@ const translations = {
     "publicPage.handcraftedBy": "हाथ सँ बनल",
     "publicPage.pieces": "गोठ",
     "publicPage.aboutMe": "हमर बारे में",
+    "voice.liveSources": "गूगल सर्च सँ सीधा",
+    "voice.poweredBy": "गूगल Gemini द्वारा संचालित",
+    "studio.artDirected": "Gemini अहाँक फोटो देखलकै आ अहाँक सामान सँ ओकर मेल बैसौलकै",
   },
   doi: {
     "nav.home": "होम",
@@ -16014,6 +16068,9 @@ const translations = {
     "publicPage.handcraftedBy": "हत्थें बनाई",
     "publicPage.pieces": "नग",
     "publicPage.aboutMe": "मेरे बारे च",
+    "voice.liveSources": "Google सर्च शा सीधे",
+    "voice.poweredBy": "Google Gemini आधारे",
+    "studio.artDirected": "Gemini ने तुंदे उत्पाद दे हिसाबै कन्नै मिलान लेई तुंदी फोटो दा अध्ययन कीता है",
   },
   ks: {
     "nav.home": "ہوم",
@@ -16856,6 +16913,9 @@ const translations = {
     "publicPage.handcraftedBy": "ہاتھ سے بنایا ہے",
     "publicPage.pieces": "پیس",
     "publicPage.aboutMe": "میرے بارے میں",
+    "voice.liveSources": "Google Search پؠٹھ براہِ راست",
+    "voice.poweredBy": "Google Gemini سٟتؠ چلن وول",
+    "studio.artDirected": "Gemini چھِ تُہنٛز تصویر گژھنٕہ پتہٕ یہِ تُہنٛدِ ہُنرِ سٟتؠ ملأوُتھ",
   },
   brx: {
     "nav.home": "होम",
@@ -17698,6 +17758,9 @@ const translations = {
     "publicPage.handcraftedBy": "आखायै बानायनाय",
     "publicPage.pieces": "बाहागोफोर",
     "publicPage.aboutMe": "आंनि सोमोन्दै",
+    "voice.liveSources": "Google Search निफ्राय दिन्थिफुंनाय",
+    "voice.poweredBy": "Google Gemini नि हेफाजाबजों",
+    "studio.artDirected": "Gemini आ नोंनि थिफुनायखौ नायबिजिरना बेखौ नोंनि मुवाजों मिलायना होदों",
   },
   mni: {
     "nav.home": "হোম",
@@ -18540,6 +18603,9 @@ const translations = {
     "publicPage.handcraftedBy": "হুপনা শাবা",
     "publicPage.pieces": "পোৎলমশিং",
     "publicPage.aboutMe": "ঐগী মরমদা",
+    "voice.liveSources": "Google Search দগী লৈবাক্কী ওইবা পাউ",
+    "voice.poweredBy": "Google Gemini দগী শাগৎপা",
+    "studio.artDirected": "নহাক্কী পোৎথোক অসিগা চৎননবা Gemini না নহাক্কী ফটো অদু য়েংলগা শেমখিবনি",
   },
   sat: {
     "nav.home": "ᱚᱲᱟᱜ",
@@ -19382,6 +19448,9 @@ const translations = {
     "publicPage.handcraftedBy": "ᱛᱤ ᱛᱮ ᱵᱮᱱᱟᱣᱟᱜ",
     "publicPage.pieces": "ᱜᱚᱴᱟᱝ",
     "publicPage.aboutMe": "ᱤᱧᱟᱜ ᱠᱟᱛᱷᱟ",
+    "voice.liveSources": "Google ᱥᱮᱸᱫᱽᱨᱟ (Search) ᱠᱷᱚᱱ ᱥᱚᱡᱷᱮ",
+    "voice.poweredBy": "Google Gemini ᱛᱮ ᱪᱟᱹᱞᱩᱜ ᱠᱟᱱᱟ",
+    "studio.artDirected": "Gemini ᱟᱢᱟᱜ ᱪᱤᱛᱟᱹᱨ ᱧᱮᱞ ᱠᱟᱛᱮ ᱟᱢᱟᱜ ᱡᱤᱱᱤᱥ ᱥᱟᱶ ᱱᱚᱣᱟᱭ ᱢᱮᱞ ᱟᱠᱟᱫᱟ",
   },
 } as const
 

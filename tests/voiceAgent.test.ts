@@ -141,7 +141,7 @@ describe('runVoiceAgent', () => {
     expect(second.contents[1]).toEqual({ role: 'model', parts: [{ functionCall: { name: 'suggest_fair_price', args: { material_cost_inr: 1500, hours_of_work: 20 }, id: 'c1' }, thoughtSignature: 'sig' }] })
     expect(second.contents[2].parts[0].functionResponse).toMatchObject({ name: 'suggest_fair_price', id: 'c1', response: { fairPrice: 7860 } })
     expect(second.tools[0].functionDeclarations.map((f: { name: string }) => f.name)).toEqual([
-      'suggest_fair_price', 'find_schemes', 'get_my_products', 'get_my_profile', 'open_screen',
+      'suggest_fair_price', 'find_schemes', 'search_schemes_online', 'get_my_products', 'get_my_profile', 'open_screen',
     ])
   })
 
@@ -213,6 +213,61 @@ describe('runVoiceAgent', () => {
     const { runVoiceAgent, MAX_AGENT_STEPS } = await import('@/lib/voiceAgent')
     await expect(runVoiceAgent({ text: 'x', data: fakeData() })).rejects.toThrow(/too many tool steps/)
     expect(MAX_AGENT_STEPS).toBe(4)
+  })
+})
+
+describe('live scheme search (Google Search grounding)', () => {
+  const grounded = (text: string, chunks: unknown[]) => ({
+    ok: true, status: 200, text: async () => '',
+    json: async () => ({ candidates: [{ content: { parts: [{ text }] }, groundingMetadata: { groundingChunks: chunks } }] }),
+  })
+
+  it('returns the live answer with de-duplicated https sources', async () => {
+    const fetchMock = stubFetch(grounded('PM Vishwakarma offers loans up to 3 lakh.', [
+      { web: { uri: 'https://pmvishwakarma.gov.in', title: 'PM Vishwakarma' } },
+      { web: { uri: 'https://pmvishwakarma.gov.in', title: 'duplicate' } },
+      { web: { uri: 'http://insecure.example', title: 'insecure' } },
+      { web: { uri: 'https://handlooms.nic.in/schemes', title: '' } },
+    ]))
+    const { geminiGrounded } = await import('@/lib/gemini')
+    const result = await geminiGrounded({ prompt: 'weaver schemes' })
+    expect(result.text).toContain('PM Vishwakarma')
+    expect(result.sources).toEqual([
+      { title: 'PM Vishwakarma', url: 'https://pmvishwakarma.gov.in' },
+      { title: 'handlooms.nic.in', url: 'https://handlooms.nic.in/schemes' },
+    ])
+    expect(bodyOf(fetchMock, 0).tools).toEqual([{ google_search: {} }])
+  })
+
+  it('stops after a quota error instead of trying every model', async () => {
+    const fetchMock = stubFetch(httpError(429), httpError(429), httpError(429))
+    const { geminiGrounded } = await import('@/lib/gemini')
+    await expect(geminiGrounded({ prompt: 'x' })).rejects.toMatchObject({ status: 429 })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('the agent shows live sources when search works', async () => {
+    stubFetch(
+      reply([{ functionCall: { name: 'search_schemes_online', args: { question: 'new handloom schemes Telangana' } } }]),
+      grounded('The Handloom Weavers Comprehensive Welfare Scheme is open.', [{ web: { uri: 'https://handlooms.nic.in', title: 'Handlooms' } }]),
+      textReply('REPLY: There is a welfare scheme open now.'),
+    )
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'new schemes?', data: fakeData() })
+    expect(result.actions[0]).toMatchObject({ type: 'web', sources: [{ url: 'https://handlooms.nic.in' }] })
+  })
+
+  it('the agent falls back to the approved list when live search is unavailable', async () => {
+    const fetchMock = stubFetch(
+      reply([{ functionCall: { name: 'search_schemes_online', args: { question: 'schemes' } } }]),
+      httpError(429),
+      textReply('REPLY: PM Vishwakarma is open.'),
+    )
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'schemes?', data: fakeData() })
+    expect(result.reply).toBe('PM Vishwakarma is open.')
+    expect(bodyOf(fetchMock, 2).contents[2].parts[0].functionResponse.response.error).toMatch(/not available/)
+    expect(result.actions).toEqual([])
   })
 })
 

@@ -49,6 +49,8 @@ function useVoiceLabels() {
     stop: t('voice.stop'),
     examples: [t('voice.example1'), t('voice.example2'), t('voice.example3'), t('voice.example4')],
     screen: (id: string) => t(`voice.screen.${id}` as TranslationKey),
+    liveSources: t('voice.liveSources'),
+    poweredBy: t('voice.poweredBy'),
   }
 }
 type Labels = ReturnType<typeof useVoiceLabels>
@@ -251,7 +253,8 @@ function VoicePageInner() {
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5vw, 27px)', color: 'var(--ks-earth)', marginBottom: 6 }}>
         {L.title}
       </h1>
-      <p style={{ fontSize: 14, color: 'var(--ks-muted)', lineHeight: 1.55, marginBottom: 16 }}>{L.subtitle}</p>
+      <p style={{ fontSize: 14, color: 'var(--ks-muted)', lineHeight: 1.55, marginBottom: 10 }}>{L.subtitle}</p>
+      <p style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--ks-jade)', background: 'rgba(15,91,78,0.08)', border: '1px solid rgba(15,91,78,0.2)', borderRadius: 999, padding: '4px 10px', marginBottom: 16 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 4.6 2.4 7.4 10 10-7.6 2.6-9.4 5.4-10 10-.6-4.6-2.4-7.4-10-10 7.6-2.6 9.4-5.4 10-10z" /></svg> {L.poweredBy}</p>
       <div className="ks-frieze" style={{ marginBottom: 20 }} />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -413,6 +416,25 @@ function ActionCard({ action, L, copiedUrl, onCopy }: { action: AgentAction; L: 
             </span>
           </a>
         ))}
+      </div>
+    )
+  }
+  if (action.type === 'web') {
+    return (
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--ks-jade)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          {L.liveSources}
+        </div>
+        {action.sources.length > 0 && (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {action.sources.map((src) => (
+              <li key={src.url}>
+                <a href={src.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'var(--ks-indigo)', fontWeight: 600, wordBreak: 'break-word' }}>{src.title} ↗</a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     )
   }

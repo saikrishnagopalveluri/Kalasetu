@@ -28,6 +28,7 @@ function StudioPageInner() {
   const [refImageDataUrl, setRefImageDataUrl] = useState<string | null>(null)
   const [resultUrl, setResultUrl] = useState('')
   const [resultPrompt, setResultPrompt] = useState('')
+  const [artDirected, setArtDirected] = useState(false)
   const [refineNote, setRefineNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -75,6 +76,7 @@ function StudioPageInner() {
         return
       }
       setResultUrl(data.imageDataUrl)
+      setArtDirected(data.promptBy === 'gemini')
       setResultPrompt(data.prompt ?? '')
     } catch {
       setError(t('common.aiUnavailable'))
@@ -202,6 +204,9 @@ function StudioPageInner() {
         <section className="ks-pop-in" style={cardStyle} aria-label={t('studio.createPhoto')}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={resultUrl} alt={productName || t('studio.productName')} style={{ width: '100%', borderRadius: 10, marginBottom: 14 }} />
+          {artDirected && (
+            <p style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--ks-jade)', background: 'rgba(15,91,78,0.08)', border: '1px solid rgba(15,91,78,0.2)', borderRadius: 999, padding: '4px 10px', marginBottom: 10 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 4.6 2.4 7.4 10 10-7.6 2.6-9.4 5.4-10 10-.6-4.6-2.4-7.4-10-10 7.6-2.6 9.4-5.4 10-10z" /></svg> {t('studio.artDirected')}</p>
+          )}
           <p style={{ fontSize: 11.5, color: 'var(--ks-muted)', marginBottom: 16, lineHeight: 1.55 }}>
             {t('studio.aiPreviewNote')}
           </p>

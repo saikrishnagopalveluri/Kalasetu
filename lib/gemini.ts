@@ -287,3 +287,43 @@ export async function geminiSpeech({ text, languageName }: { text: string; langu
   }
   throw lastError
 }
+
+export type GroundedSource = { title: string; url: string }
+
+// Gemini answering with Google Search grounding: a live answer plus the
+// web pages it came from, so the artisan can check every claim. Needs a
+// Gemini API project with billing enabled (the free tier has no grounding
+// quota); callers treat any failure as "no live answer" and fall back.
+export async function geminiGrounded({ prompt, system, timeoutMs = 25_000 }: { prompt: string; system?: string; timeoutMs?: number }): Promise<{ text: string; sources: GroundedSource[]; model: string }> {
+  let lastError: unknown
+  for (const model of [GEMINI_MODELS.fast, ...GEMINI_MODELS.text.filter((m) => m !== GEMINI_MODELS.fast)]) {
+    try {
+      const body: Record<string, unknown> = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { maxOutputTokens: 2048 },
+      }
+      if (system) body.systemInstruction = { parts: [{ text: system }] }
+      const json = (await callGenerateContent(model, body, timeoutMs)) as GeminiResponse & {
+        candidates?: { groundingMetadata?: { groundingChunks?: { web?: { uri?: string; title?: string } }[] } }[]
+      }
+      const text = responseParts(json).filter((p) => typeof p.text === 'string' && !p.thought).map((p) => p.text as string).join('').trim()
+      if (!text) throw new GeminiError(`Gemini ${model} returned no grounded text`, 502)
+      const seen = new Set<string>()
+      const sources: GroundedSource[] = []
+      for (const chunk of json.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) {
+        const url = chunk.web?.uri
+        if (!url || seen.has(url) || !/^https:\/\//.test(url)) continue
+        seen.add(url)
+        sources.push({ title: (chunk.web?.title || new URL(url).hostname).slice(0, 120), url })
+        if (sources.length === 5) break
+      }
+      return { text, sources, model }
+    } catch (err) {
+      lastError = err
+      // Quota errors are the same on every model of one project: stop early.
+      if (err instanceof GeminiError && (err.status === 429 || err.status === 403)) break
+    }
+  }
+  throw lastError
+}
