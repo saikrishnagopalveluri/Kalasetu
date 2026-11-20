@@ -69,7 +69,8 @@ function StudioPageInner() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || t('common.somethingWrong'))
+        // Server messages are English; show the artisan's language instead.
+        setError(t(res.status === 429 ? 'common.tooManyRequests' : res.status === 400 ? 'common.somethingWrong' : 'common.aiUnavailable'))
         return
       }
       setResultUrl(data.imageDataUrl)

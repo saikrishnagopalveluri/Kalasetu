@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { LanguageId } from './languages'
 import { supabase } from './supabase'
+import { useLanguage } from './LanguageProvider'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 type AIMode = 'description' | 'craft_story' | 'caption' | 'whatsapp' | 'facebook' | 'catalogue' | 'pricing' | 'coach' | 'general' | 'design_inspiration'
@@ -11,6 +12,7 @@ type Language = LanguageId
 export function useAI() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useLanguage()
 
   const callAPI = useCallback(async (
     messages: Message[],
@@ -31,19 +33,20 @@ export function useAI() {
         body: JSON.stringify({ messages, mode, language }),
       })
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Something went wrong')
+        // The server's message is English; show the artisan's language.
+        setError(t(response.status === 429 ? 'common.tooManyRequests' : 'common.aiUnavailable'))
+        return ''
       }
       const data = await response.json()
       return data.text
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'AI unavailable. Please try again.'
-      setError(message)
+    } catch {
+      // Network failures carry the browser's own English text; never show it.
+      setError(t('common.aiUnavailable'))
       return ''
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   const ask = useCallback((prompt: string, mode: AIMode = 'general', language?: Language) =>
     callAPI([{ role: 'user', content: prompt }], mode, language), [callAPI])

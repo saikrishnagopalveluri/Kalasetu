@@ -60,6 +60,7 @@ All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), wh
 
 | Feature | Google model | Where | Fallback |
 |---|---|---|---|
+| Photoshoot and design art direction | **Gemini** (`gemini-3.1-flash-lite`, vision) studies the artisan's real photo, or the design brief, and writes a precise image prompt: exact shape, material, colours, motifs, or for designs named motifs, a colour palette and craft-true details. The free image models then render something close to the real product instead of a generic one | `lib/artDirector.ts`, `/api/photoshoot`, `/api/design-image` | The original template prompt |
 | AI Photoshoot | **Nano Banana 2** (`gemini-3.1-flash-image`) edits the artisan's real phone photo into a studio, heritage or festival scene and is told to keep the product itself unchanged | `lib/imageProviders.ts`, `/api/photoshoot` | Hugging Face, Cloudflare, Pixazo, Stability, Pollinations |
 | Design Studio images | **Nano Banana** | `/api/design-image` | same chain |
 | Listings, craft story, captions, WhatsApp and Facebook posts, B2B catalogue entries | **Gemini 4 Hydrogen** (`gemini-4-hydrogen`), multimodal, so a product photo can be sent with the request | `/api/ai` | Claude, then Groq |
@@ -79,6 +80,10 @@ How the layer works:
 - **Image quota.** Nano Banana image generation needs a Gemini API project with billing enabled; on the free tier its quota is zero, and the photoshoot automatically uses the fallback image chain until billing is turned on. No code change is needed when it is.
 - **Fails safe.** Every call has a timeout. If Gemini is unavailable, rate limited or not configured, the feature silently uses the fallback provider. Gemini's own error text is logged on the server and never sent to the browser.
 - **Tested.** `tests/gemini.test.ts` checks the request sent to Google (system prompt, chat history, image data, JSON mode, model choice), the Nano Banana "keep the product unchanged" instruction, Gemma's fallback to Gemini, and that `/api/ai` and the story evaluator use Gemini first and fall back only when it fails.
+
+## Languages
+
+Every screen an artisan uses is translated into all 23 languages (India's 22 scheduled languages and English), from one dictionary in [`lib/translations.ts`](lib/translations.ts): 822 keys, with every language complete. `tests/translationCoverage.test.ts` fails the build if any language is missing a key, if Urdu, Kashmiri or Sindhi text falls back to Roman letters, or if a login error has no translation. Errors from the server or from Supabase are shown as translated messages, never as raw English (`lib/useAI.ts`, `lib/authErrors.ts`). The admin portal is English only, since it is used by staff.
 
 ## Assumptions
 

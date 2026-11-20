@@ -3,17 +3,11 @@
 import Link from 'next/link'
 import { useLanguage } from '@/lib/LanguageProvider'
 
-// Home-screen entry point for Saathi Voice. Labels for the three
-// most-used languages, English otherwise.
-const TEXT: Record<string, { title: string; desc: string; cta: string }> = {
-  en: { title: 'Talk to Saathi', desc: 'Ask in your own language. Saathi prices your work, finds schemes and opens the right tool for you.', cta: 'Speak now' },
-  hi: { title: 'साथी से बात करें', desc: 'अपनी भाषा में पूछें। साथी दाम बताता है, योजनाएं ढूंढता है और सही टूल खोलता है।', cta: 'अभी बोलें' },
-  te: { title: 'సాథీతో మాట్లాడండి', desc: 'మీ భాషలో అడగండి. సాథీ ధర చెబుతుంది, పథకాలు వెతుకుతుంది, సరైన టూల్ తెరుస్తుంది.', cta: 'ఇప్పుడే మాట్లాడండి' },
-}
+// Home-screen entry point for Saathi Voice.
 
 export default function VoiceAgentBanner() {
-  const { language } = useLanguage()
-  const text = TEXT[language] ?? TEXT.en
+  const { t } = useLanguage()
+  const text = { title: t('voice.bannerTitle'), desc: t('voice.bannerDesc'), cta: t('voice.bannerCta') }
   return (
     <Link
       href="/voice"

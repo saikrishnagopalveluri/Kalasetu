@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
 import { LANGUAGES } from '@/lib/languages'
 import { useLanguage } from '@/lib/LanguageProvider'
+import { authErrorKey } from '@/lib/authErrors'
 import type { TranslationKey } from '@/lib/translations'
 import PeacockMark from '@/components/PeacockMark'
 import { registerReferral } from '@/lib/referrals'
@@ -109,7 +110,8 @@ function SignupFormInner() {
     if (ok) router.push('/')
   }
 
-  const shownError = validationError || error
+  const authKey = authErrorKey(error)
+  const shownError = validationError || (authKey ? t(authKey) : '')
 
   return (
     <div style={{ maxWidth: 520, margin: '0 auto' }}>

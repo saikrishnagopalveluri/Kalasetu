@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/useAuth'
 import { useLanguage } from '@/lib/LanguageProvider'
+import { authErrorKey } from '@/lib/authErrors'
 import PeacockMark from '@/components/PeacockMark'
 
 export default function LoginPage() {
@@ -30,7 +31,8 @@ export default function LoginPage() {
     if (ok) router.push('/')
   }
 
-  const shownError = validationError || error
+  const authKey = authErrorKey(error)
+  const shownError = validationError || (authKey ? t(authKey) : '')
 
   return (
     <div style={{ maxWidth: 440, margin: '0 auto' }}>

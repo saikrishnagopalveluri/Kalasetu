@@ -9,105 +9,49 @@ import { useFollowingState } from '@/lib/useFollowingState'
 import { supabase } from '@/lib/supabase'
 import { bytesToBase64, encodeWav, peakLevel, toMono16k } from '@/lib/wav'
 import type { AgentAction } from '@/lib/voiceAgent'
+import type { TranslationKey } from '@/lib/translations'
 
-// Screen labels for the three most-used languages; everything else falls
-// back to English. The agent itself answers in all 23 languages.
-const LABELS = {
-  en: {
-    title: 'Saathi Voice',
-    subtitle: 'Talk to Saathi in your own language. Ask about prices, schemes, your products or your catalogue, or ask it to open a tool for you.',
-    tapToSpeak: 'Tap and speak',
-    listening: 'Listening… tap to stop',
-    thinking: 'Saathi is thinking…',
-    speaking: 'Saathi is speaking',
-    language: 'Language',
-    you: 'You',
-    saathi: 'Saathi',
-    typeHere: 'Or type your question',
-    send: 'Send',
-    speakReplies: 'Read replies aloud',
-    tryAsking: 'Try asking',
-    noMic: 'Microphone not available here. You can type your question below.',
-    micDenied: 'Please allow the microphone to talk to Saathi, or type your question below.',
-    tooQuiet: "I couldn't hear anything. Please hold the phone closer and try again.",
-    fairPrice: 'Fair price',
-    online: 'Online price (covers fees)',
-    minimum: 'Do not sell below',
-    materials: 'Materials',
-    labour: 'Your labour',
-    open: 'Open',
-    copy: 'Copy link',
-    copied: 'Copied',
-    share: 'Share on WhatsApp',
-    noCatalogue: 'Your catalogue is not published yet.',
-    deadline: 'Deadline',
-    stop: 'Stop',
-    examples: ['What price should I put on my saree? Materials cost 1500 rupees and it took 20 hours.', 'Are there any government schemes for weavers?', 'Which of my products still need a description?', 'Give me my catalogue link'],
-  },
-  hi: {
-    title: 'साथी वॉइस',
-    subtitle: 'अपनी भाषा में साथी से बात करें। दाम, सरकारी योजना, अपने उत्पाद या कैटलॉग के बारे में पूछें, या कोई टूल खोलने को कहें।',
-    tapToSpeak: 'दबाएं और बोलें',
-    listening: 'सुन रहा है… रोकने के लिए दबाएं',
-    thinking: 'साथी सोच रहा है…',
-    speaking: 'साथी बोल रहा है',
-    language: 'भाषा',
-    you: 'आप',
-    saathi: 'साथी',
-    typeHere: 'या अपना सवाल लिखें',
-    send: 'भेजें',
-    speakReplies: 'जवाब बोलकर सुनाएं',
-    tryAsking: 'ऐसे पूछें',
-    noMic: 'यहां माइक उपलब्ध नहीं है। नीचे अपना सवाल लिखें।',
-    micDenied: 'साथी से बात करने के लिए माइक की अनुमति दें, या नीचे सवाल लिखें।',
-    tooQuiet: 'कुछ सुनाई नहीं दिया। फोन पास रखकर फिर से बोलें।',
-    fairPrice: 'सही दाम',
-    online: 'ऑनलाइन दाम (फीस सहित)',
-    minimum: 'इससे कम में न बेचें',
-    materials: 'सामग्री',
-    labour: 'आपकी मेहनत',
-    open: 'खोलें',
-    copy: 'लिंक कॉपी करें',
-    copied: 'कॉपी हो गया',
-    share: 'WhatsApp पर भेजें',
-    noCatalogue: 'आपका कैटलॉग अभी प्रकाशित नहीं हुआ है।',
-    deadline: 'अंतिम तिथि',
-    stop: 'रोकें',
-    examples: ['मेरी साड़ी का दाम क्या रखूं? सामग्री 1500 रुपये की है और 20 घंटे लगे।', 'बुनकरों के लिए कोई सरकारी योजना है?', 'मेरे किन उत्पादों का विवरण बाकी है?', 'मेरा कैटलॉग लिंक दो'],
-  },
-  te: {
-    title: 'సాథీ వాయిస్',
-    subtitle: 'మీ భాషలో సాథీతో మాట్లాడండి. ధర, ప్రభుత్వ పథకాలు, మీ ఉత్పత్తులు లేదా కేటలాగ్ గురించి అడగండి, లేదా ఏదైనా టూల్ తెరవమని చెప్పండి.',
-    tapToSpeak: 'నొక్కి మాట్లాడండి',
-    listening: 'వింటోంది… ఆపడానికి నొక్కండి',
-    thinking: 'సాథీ ఆలోచిస్తోంది…',
-    speaking: 'సాథీ మాట్లాడుతోంది',
-    language: 'భాష',
-    you: 'మీరు',
-    saathi: 'సాథీ',
-    typeHere: 'లేదా మీ ప్రశ్న టైప్ చేయండి',
-    send: 'పంపండి',
-    speakReplies: 'సమాధానం వినిపించు',
-    tryAsking: 'ఇలా అడగండి',
-    noMic: 'ఇక్కడ మైక్ అందుబాటులో లేదు. కింద మీ ప్రశ్న టైప్ చేయండి.',
-    micDenied: 'సాథీతో మాట్లాడటానికి మైక్ అనుమతి ఇవ్వండి, లేదా కింద టైప్ చేయండి.',
-    tooQuiet: 'ఏమీ వినిపించలేదు. ఫోన్ దగ్గరగా పెట్టి మళ్ళీ మాట్లాడండి.',
-    fairPrice: 'సరైన ధర',
-    online: 'ఆన్‌లైన్ ధర (ఫీజుతో)',
-    minimum: 'దీని కంటే తక్కువకు అమ్మకండి',
-    materials: 'ముడి సరుకు',
-    labour: 'మీ శ్రమ',
-    open: 'తెరవండి',
-    copy: 'లింక్ కాపీ',
-    copied: 'కాపీ అయింది',
-    share: 'WhatsApp లో పంపండి',
-    noCatalogue: 'మీ కేటలాగ్ ఇంకా ప్రచురించలేదు.',
-    deadline: 'చివరి తేదీ',
-    stop: 'ఆపండి',
-    examples: ['నా చీరకు ఎంత ధర పెట్టాలి? ముడి సరుకు 1500 రూపాయలు, 20 గంటలు పని.', 'నేత కార్మికులకు ఏవైనా ప్రభుత్వ పథకాలు ఉన్నాయా?', 'నా ఉత్పత్తుల్లో దేనికి వివరణ రాయాలి?', 'నా కేటలాగ్ లింక్ ఇవ్వండి'],
-  },
+// Every label comes from the shared dictionary (lib/translations.ts), so
+// the screen reads in all 23 languages like the rest of the app.
+function useVoiceLabels() {
+  const { t } = useLanguage()
+  return {
+    title: t('voice.title'),
+    subtitle: t('voice.subtitle'),
+    tapToSpeak: t('voice.tapToSpeak'),
+    listening: t('voice.listening'),
+    thinking: t('voice.thinking'),
+    speaking: t('voice.speaking'),
+    language: t('voice.language'),
+    you: t('voice.you'),
+    saathi: t('voice.saathi'),
+    typeHere: t('voice.typeHere'),
+    send: t('common.send'),
+    speakReplies: t('voice.speakReplies'),
+    tryAsking: t('voice.tryAsking'),
+    noMic: t('voice.noMic'),
+    micDenied: t('voice.micDenied'),
+    tooQuiet: t('voice.tooQuiet'),
+    badRecording: t('voice.badRecording'),
+    busy: t('voice.busy'),
+    tooMany: t('common.tooManyRequests'),
+    fairPrice: t('voice.fairPrice'),
+    online: t('voice.online'),
+    minimum: t('voice.minimum'),
+    materials: t('voice.materials'),
+    labour: t('voice.labour'),
+    open: t('voice.open'),
+    copy: t('voice.copyLink'),
+    copied: t('common.copied'),
+    share: t('voice.shareWhatsapp'),
+    noCatalogue: t('voice.noCatalogue'),
+    deadline: t('voice.deadline'),
+    stop: t('voice.stop'),
+    examples: [t('voice.example1'), t('voice.example2'), t('voice.example3'), t('voice.example4')],
+    screen: (id: string) => t(`voice.screen.${id}` as TranslationKey),
+  }
 }
-type Labels = typeof LABELS.en
+type Labels = ReturnType<typeof useVoiceLabels>
 
 type Status = 'idle' | 'recording' | 'thinking' | 'speaking'
 type Turn = { id: number; role: 'user' | 'assistant'; text: string; actions?: AgentAction[] }
@@ -139,7 +83,7 @@ async function blobToWav(blob: Blob): Promise<{ base64: string; peak: number }> 
 function VoicePageInner() {
   const { language: uiLanguage } = useLanguage()
   const [language, setLanguage] = useFollowingState<LanguageId>(uiLanguage)
-  const L: Labels = (LABELS as Record<string, Labels>)[language] ?? LABELS.en
+  const L = useVoiceLabels()
 
   const [status, setStatus] = useState<Status>('idle')
   const [turns, setTurns] = useState<Turn[]>([])
@@ -200,8 +144,10 @@ function VoicePageInner() {
         headers: await authHeaders(),
         body: JSON.stringify({ ...payload, history, language }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'error')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(res.status === 400 ? L.badRecording : res.status === 429 ? L.tooMany : L.busy)
+      }
       setTurns((prev) => [
         ...prev,
         ...(payload.audio && data.heard ? [{ id: nextId.current++, role: 'user' as const, text: data.heard }] : []),
@@ -209,7 +155,7 @@ function VoicePageInner() {
       ])
       await speak(data.reply)
     } catch (err) {
-      setNotice(err instanceof Error && err.message !== 'error' ? err.message : 'Saathi is busy. Please try again in a moment.')
+      setNotice(err instanceof Error && err.message ? err.message : L.busy)
       setStatus('idle')
     }
   }
@@ -493,7 +439,7 @@ function ActionCard({ action, L, copiedUrl, onCopy }: { action: AgentAction; L: 
   }
   return (
     <div style={{ ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-      <b style={{ fontSize: 14, color: 'var(--ks-earth)' }}>{action.label}</b>
+      <b style={{ fontSize: 14, color: 'var(--ks-earth)' }}>{L.screen(action.screen)}</b>
       <Link href={action.path} style={button}>{L.open} →</Link>
     </div>
   )
