@@ -248,7 +248,17 @@ async function agentStep(models: string[], body: Record<string, unknown>, deadli
     const remaining = deadline - Date.now()
     if (remaining < 1_000) break
     try {
-      return { json: (await callGenerateContent(model, body, Math.min(AGENT_ATTEMPT_TIMEOUT_MS, remaining))) as GeminiResponse, model }
+      const json = (await callGenerateContent(model, body, Math.min(AGENT_ATTEMPT_TIMEOUT_MS, remaining))) as GeminiResponse
+      // An empty reply (no text and no tool call) is a failed attempt too:
+      // models occasionally spend their whole output on thinking or emit a
+      // malformed tool call. Move on rather than failing the answer.
+      const parts = responseParts(json)
+      const usable = parts.some((p) => (p.functionCall && typeof p.functionCall === 'object') || (typeof p.text === 'string' && p.text.trim() && !p.thought))
+      if (!usable) {
+        const reason = (json.candidates?.[0] as { finishReason?: string } | undefined)?.finishReason ?? 'unknown'
+        throw new Error(`voiceAgent: ${model} returned an empty reply (finish: ${reason})`)
+      }
+      return { json, model }
     } catch (err) {
       lastError = err
       console.error(`voiceAgent: ${model} failed:`, err instanceof Error ? err.message : err)

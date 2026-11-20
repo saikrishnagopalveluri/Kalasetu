@@ -238,6 +238,15 @@ describe('runVoiceAgent', () => {
     expect(result.reply).toBe('Hi.')
   })
 
+  it('treats an empty reply as a failed attempt and tries again', async () => {
+    const empty = { ok: true, status: 200, text: async () => '', json: async () => ({ candidates: [{ content: { parts: [{ text: '', thought: true }] }, finishReason: 'MAX_TOKENS' }] }) }
+    const fetchMock = stubFetch(empty, textReply('REPLY: Here you go.'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'hi', data: fakeData() })
+    expect(result.reply).toBe('Here you go.')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('caps every attempt at 12 seconds and the whole answer at 45 seconds', async () => {
     const { attemptOrder, AGENT_ATTEMPT_TIMEOUT_MS, AGENT_TOTAL_BUDGET_MS } = await import('@/lib/voiceAgent')
     expect(AGENT_ATTEMPT_TIMEOUT_MS).toBe(12_000)
