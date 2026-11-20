@@ -754,3 +754,7 @@ html[dir="rtl"] .ks-tour-trigger {
   text-decoration: none;
 }
 .ks-skip-link:focus { top: 12px; }
+
+/* Catalogue templates set their own colours (white titles on dark bands);
+   the app-wide heading colour above must not override them. */
+.ks-catalogue h1, .ks-catalogue h2, .ks-catalogue h3, .ks-catalogue p { color: inherit; }

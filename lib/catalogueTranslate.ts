@@ -6,8 +6,45 @@
 // a string keeps the artisan's original text, so a bad answer can never
 // blank out or invent a product.
 
+import Groq from 'groq-sdk'
 import { geminiText, GEMINI_MODELS } from './gemini'
 import { languageName } from './languages'
+
+// Gemini first (two fast models), then Groq, each with its own time limit
+// so the whole job stays inside the route's 60 s. Without a backup, a busy
+// Gemini quietly left the whole catalogue in English.
+const CATALOGUE_GEMINI_MODELS = () => [...new Set([GEMINI_MODELS.fast, 'gemini-3.5-flash-lite'])]
+const GEMINI_ATTEMPT_MS = 18_000
+const GROQ_MODEL = 'openai/gpt-oss-120b'
+const GROQ_ATTEMPT_MS = 20_000
+
+function parseList(text: string): unknown[] {
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
+  const parsed: unknown = JSON.parse(cleaned)
+  const list = Array.isArray(parsed) ? parsed : (parsed as { products?: unknown })?.products
+  if (!Array.isArray(list)) throw new Error('catalogueTranslate: response is not a list')
+  return list
+}
+
+async function translateWithFallback(prompt: string): Promise<unknown[]> {
+  let lastError: unknown
+  for (const model of CATALOGUE_GEMINI_MODELS()) {
+    try {
+      const { text } = await geminiText({ prompt, json: true, maxTokens: 8192, timeoutMs: GEMINI_ATTEMPT_MS, model })
+      return parseList(text)
+    } catch (err) {
+      lastError = err
+      console.error(`catalogueTranslate: ${model} failed:`, err instanceof Error ? err.message : err)
+    }
+  }
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) throw lastError
+  const res = await new Groq({ apiKey }).chat.completions.create(
+    { model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 8192 },
+    { timeout: GROQ_ATTEMPT_MS },
+  )
+  return parseList(res.choices[0]?.message?.content ?? '')
+}
 
 export const MAX_CATALOGUE_PRODUCTS = 40
 const FIELDS = ['name', 'material', 'craft_type', 'description', 'craft_story'] as const
@@ -48,16 +85,7 @@ Return ONLY a JSON array with one object per product, the same "id" values, and 
 
 ${JSON.stringify(payload)}`
 
-  const { text } = await geminiText({
-    prompt,
-    json: true,
-    maxTokens: 8192,
-    timeoutMs: 60_000,
-    model: GEMINI_MODELS.fast,
-  })
-  const parsed: unknown = JSON.parse(text.replace(/^```json\s*|```\s*$/g, '').trim())
-  const list = Array.isArray(parsed) ? parsed : (parsed as { products?: unknown })?.products
-  if (!Array.isArray(list)) throw new Error('catalogueTranslate: response is not a list')
+  const list = await translateWithFallback(prompt)
 
   const byId = new Map<string, Record<string, unknown>>()
   for (const item of list) {

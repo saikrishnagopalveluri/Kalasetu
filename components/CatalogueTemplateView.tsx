@@ -39,7 +39,6 @@ const GOLD = '#D4A017'
 const JADE = '#0F5B4E'
 const PAPER = '#F4EFE6'
 const IVORY = '#FAF7F0'
-const LINEN = '#ECE4D3'
 const MUTED = '#5C6B7A'
 const HAIRLINE = 'rgba(19,42,69,0.14)'
 
@@ -65,14 +64,33 @@ function MotifRow({ color = GOLD, count: n = 28, size = 6 }: { color?: string; c
   )
 }
 
+// Soft craft-colour tints for products without a photo, picked from the
+// product name so the same product always gets the same colour.
+const TINTS: [string, string][] = [
+  ['#F3E1D3', CLAY], ['#DCEBE5', JADE], ['#F6E9C6', '#8A6A12'], ['#DDE3EC', INK],
+]
+
+function tintFor(name: string): [string, string] {
+  let sum = 0
+  for (const ch of name) sum += ch.codePointAt(0) ?? 0
+  return TINTS[sum % TINTS.length]
+}
+
 function ProductImage({ product, width, height, radius = 0, style }: { product: CatalogueProduct; width: number | string; height: number; radius?: number; style?: React.CSSProperties }) {
   if (!product.image_url) {
+    // No photo yet: the product's first letter in the display face, on a
+    // tint, with the house diamond border, instead of a stock emoji.
+    const [bg, ink] = tintFor(product.name || '?')
+    const initial = Array.from((product.name || '?').trim())[0]?.toUpperCase() ?? '?'
     return (
       <div aria-hidden="true" style={{
-        width, height, borderRadius: radius, flexShrink: 0,
-        background: `repeating-linear-gradient(45deg, ${LINEN}, ${LINEN} 10px, ${IVORY} 10px, ${IVORY} 20px)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, ...style,
-      }}>🧵</div>
+        width, height, borderRadius: radius, flexShrink: 0, background: bg, position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', ...style,
+      }}>
+        <div style={{ position: 'absolute', top: 10, left: 0, right: 0 }}><MotifRow color={ink} count={9} size={5} /></div>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: Math.min(64, Math.round(height * 0.36)), color: ink, lineHeight: 1 }}>{initial}</span>
+        <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0 }}><MotifRow color={ink} count={9} size={5} /></div>
+      </div>
     )
   }
   return (
@@ -146,7 +164,7 @@ export default function CatalogueTemplateView({
   // ── Premium: luxury editorial, alternating rows, gold hairlines ─────────
   if (template === 'premium') {
     return (
-      <div style={{ width: 720, background: IVORY, fontFamily: 'var(--font-body)', color: INK }}>
+      <div className="ks-catalogue" style={{ width: 720, background: IVORY, fontFamily: 'var(--font-body)', color: INK }}>
         <div style={{ padding: '56px 64px 36px', textAlign: 'center', background: `linear-gradient(180deg, ${PAPER} 0%, ${IVORY} 100%)` }}>
           <div style={{ width: 54, height: 54, margin: '0 auto 16px', border: `1px solid ${GOLD}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 22, color: GOLD }}>
             {businessName.trim().charAt(0).toUpperCase()}
@@ -187,7 +205,7 @@ export default function CatalogueTemplateView({
   // ── Story: the artisan first, each product told as a story ──────────────
   if (template === 'story') {
     return (
-      <div style={{ width: 700, background: IVORY, fontFamily: 'var(--font-body)', color: INK }}>
+      <div className="ks-catalogue" style={{ width: 700, background: IVORY, fontFamily: 'var(--font-body)', color: INK }}>
         <div style={{ background: INK, color: '#fff', padding: '40px 44px 34px', textAlign: 'center' }}>
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -229,7 +247,7 @@ export default function CatalogueTemplateView({
   // ── Collection: a lookbook grid, numbered pieces ────────────────────────
   if (template === 'collection') {
     return (
-      <div style={{ width: 700, background: '#fff', fontFamily: 'var(--font-body)', color: INK, padding: 32 }}>
+      <div className="ks-catalogue" style={{ width: 700, background: '#fff', fontFamily: 'var(--font-body)', color: INK, padding: 32 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, borderBottom: `3px solid ${INK}`, paddingBottom: 14, marginBottom: 20 }}>
           <div>
             <p style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: CLAY, margin: '0 0 4px', fontWeight: 700 }}>{businessName}</p>
@@ -260,7 +278,7 @@ export default function CatalogueTemplateView({
   // ── Simple: a clean price-list style sheet ──────────────────────────────
   if (template === 'simple') {
     return (
-      <div style={{ width: 700, padding: '40px 44px', background: '#fff', fontFamily: 'var(--font-body)', color: INK }}>
+      <div className="ks-catalogue" style={{ width: 700, padding: '40px 44px', background: '#fff', fontFamily: 'var(--font-body)', color: INK }}>
         <div style={{ borderLeft: `5px solid ${CLAY}`, paddingLeft: 14, marginBottom: 26 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 27, margin: 0 }}>{labels.title}</h1>
           <p style={{ fontSize: 13.5, color: MUTED, margin: '4px 0 0' }}>{businessName} · {count(products.length, labels)}</p>
@@ -287,7 +305,7 @@ export default function CatalogueTemplateView({
   // ── Traditional: navy and gold, zari border, framed cards ───────────────
   if (template === 'traditional') {
     return (
-      <div style={{ width: 700, background: PAPER, fontFamily: 'var(--font-body)', color: INK }}>
+      <div className="ks-catalogue" style={{ width: 700, background: PAPER, fontFamily: 'var(--font-body)', color: INK }}>
         <div style={{ background: INK, padding: '34px 40px 26px', textAlign: 'center' }}>
           <MotifRow color={GOLD} count={22} size={6} />
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: '#fff', margin: '14px 0 4px' }}>{labels.title}</h1>
@@ -318,7 +336,7 @@ export default function CatalogueTemplateView({
 
   // ── Modern (default): bright cards with a bold header band ──────────────
   return (
-    <div style={{ width: 700, background: '#fff', fontFamily: 'var(--font-body)', color: INK }}>
+    <div className="ks-catalogue" style={{ width: 700, background: '#fff', fontFamily: 'var(--font-body)', color: INK }}>
       <div style={{ background: `linear-gradient(120deg, ${INK} 0%, #1F3D5E 55%, ${CLAY} 130%)`, padding: '34px 36px 30px', color: '#fff' }}>
         <p style={{ fontSize: 11.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: GOLD, margin: 0, fontWeight: 700 }}>{businessName}</p>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, margin: '6px 0 4px' }}>{labels.title}</h1>
@@ -326,13 +344,17 @@ export default function CatalogueTemplateView({
       </div>
       <div style={{ padding: '26px 30px 6px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
         {products.map((p) => (
-          <div key={p.id} style={{ borderRadius: 14, overflow: 'hidden', background: IVORY, border: `1px solid ${HAIRLINE}`, boxShadow: '0 4px 14px rgba(19,42,69,0.08)' }}>
+          <div key={p.id} style={{ borderRadius: 14, overflow: 'hidden', background: IVORY, border: `1px solid ${HAIRLINE}`, boxShadow: '0 4px 14px rgba(19,42,69,0.08)', display: 'flex', flexDirection: 'column' }}>
             <ProductImage product={p} width="100%" height={150} />
-            <div style={{ padding: '11px 12px 13px' }}>
-              {p.craft_type && <Chip color={JADE}>{p.craft_type}</Chip>}
-              <div style={{ fontWeight: 700, fontSize: 13.5, marginTop: 6, lineHeight: 1.35 }}>{p.name}</div>
-              {p.material && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{labels.material}: {p.material}</div>}
-              {(p.description || p.craft_story) && <p style={{ fontSize: 11.5, lineHeight: 1.55, margin: '6px 0 0', color: INK }}>{clip(p.description || p.craft_story, 90)}</p>}
+            <div style={{ padding: '12px 13px 14px', flex: 1, borderTop: `3px solid ${GOLD}` }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, lineHeight: 1.3 }}>{p.name}</div>
+              {(p.craft_type || p.material) && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                  {p.craft_type && <Chip color={JADE}>{p.craft_type}</Chip>}
+                  {p.material && <span style={{ fontSize: 11, color: MUTED }}>{labels.material}: {p.material}</span>}
+                </div>
+              )}
+              {(p.description || p.craft_story) && <p style={{ fontSize: 11.5, lineHeight: 1.6, margin: '8px 0 0', color: INK }}>{clip(p.description || p.craft_story, 110)}</p>}
               <WhatsAppButton product={p} style={{ padding: '6px 12px', fontSize: 11 }} />
             </div>
           </div>
