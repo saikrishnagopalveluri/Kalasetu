@@ -78,6 +78,88 @@ describe('Groq fallback', () => {
     expect(groq.create).not.toHaveBeenCalled()
   })
 
+  it('answers a spoken price question from the calculator as soon as Whisper hears it', async () => {
+    groq.transcribe.mockResolvedValue({ text: 'నా చీరకు మెటీరియల్ 1500 రూపాయలు, 20 గంటలు పని. ఎంత ధర?' })
+    // Gemini never answers in this test.
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const r = await runVoiceAgent({ audio: { mimeType: 'audio/wav', data: 'UklGRg==' }, text: '', language: 'te', data: data() })
+    expect(r.model).toBe('kalasetu/price-calculator')
+    expect(r.heard).toContain('1500')
+    expect(r.actions[0]).toMatchObject({ type: 'price', result: { fairPrice: 7860 } })
+    expect(groq.create).not.toHaveBeenCalled()
+  })
+
+  it('uses the agent answer for spoken questions that are not plain price questions', async () => {
+    groq.transcribe.mockResolvedValue({ text: 'Are there schemes for weavers?' })
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '', json: async () => ({ candidates: [{ content: { parts: [{ text: 'HEARD: schemes?\nREPLY: From Gemini.' }] } }] }) })))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const r = await runVoiceAgent({ audio: { mimeType: 'audio/wav', data: 'UklGRg==' }, text: '', language: 'en', data: data() })
+    expect(r.reply).toBe('From Gemini.')
+  })
+
+  it('does not wait for Whisper when the agent answers first', async () => {
+    groq.transcribe.mockImplementation(() => new Promise(() => {}))
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, text: async () => '', json: async () => ({ candidates: [{ content: { parts: [{ text: 'REPLY: From Gemini.' }] } }] }) })))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const r = await runVoiceAgent({ audio: { mimeType: 'audio/wav', data: 'UklGRg==' }, text: '', language: 'en', data: data() })
+    expect(r.reply).toBe('From Gemini.')
+  })
+
+  it('goes to Groq first for 2 minutes after Gemini fails twice in a row', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      groq.create.mockResolvedValue(groqText('REPLY: From Groq.'))
+      const fetchMock = vi.fn(async () => busy)
+      vi.stubGlobal('fetch', fetchMock)
+      const { runVoiceAgent } = await import('@/lib/voiceAgent')
+      await runVoiceAgent({ text: 'hi', data: data() })
+      await runVoiceAgent({ text: 'hi', data: data() })
+      const geminiCallsSoFar = fetchMock.mock.calls.length
+      expect(geminiCallsSoFar).toBeGreaterThan(0)
+
+      // Third question: Gemini is skipped entirely.
+      const third = await runVoiceAgent({ text: 'hi', data: data() })
+      expect(third.reply).toBe('From Groq.')
+      expect(fetchMock.mock.calls.length).toBe(geminiCallsSoFar)
+
+      // After 2 minutes Gemini is tried first again.
+      vi.setSystemTime(Date.now() + 121_000)
+      await runVoiceAgent({ text: 'hi', data: data() })
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(geminiCallsSoFar)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not skip Gemini after one failure, and a success resets the count', async () => {
+    groq.create.mockResolvedValue(groqText('REPLY: From Groq.'))
+    const ok = { ok: true, status: 200, text: async () => '', json: async () => ({ candidates: [{ content: { parts: [{ text: 'REPLY: From Gemini.' }] } }] }) }
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    fetchMock.mockImplementation(async () => busy)
+    await runVoiceAgent({ text: 'hi', data: data() }) // failure 1
+    fetchMock.mockImplementation(async () => ok)
+    expect((await runVoiceAgent({ text: 'hi', data: data() })).reply).toBe('From Gemini.') // resets
+    fetchMock.mockImplementation(async () => busy)
+    await runVoiceAgent({ text: 'hi', data: data() }) // failure 1 again
+    fetchMock.mockImplementation(async () => ok)
+    expect((await runVoiceAgent({ text: 'hi', data: data() })).reply).toBe('From Gemini.')
+  })
+
+  it('falls back to Gemini when Groq fails while Gemini is being skipped', async () => {
+    groq.create.mockResolvedValue(groqText('REPLY: From Groq.'))
+    const fetchMock = vi.fn(async () => busy)
+    vi.stubGlobal('fetch', fetchMock)
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    await runVoiceAgent({ text: 'hi', data: data() })
+    await runVoiceAgent({ text: 'hi', data: data() })
+    groq.create.mockRejectedValue(new Error('groq down'))
+    fetchMock.mockImplementation(async () => ({ ok: true, status: 200, text: async () => '', json: async () => ({ candidates: [{ content: { parts: [{ text: 'REPLY: Gemini is back.' }] } }] }) }))
+    expect((await runVoiceAgent({ text: 'hi', data: data() })).reply).toBe('Gemini is back.')
+  })
+
   it('keeps the original error when Groq is not configured or also fails', async () => {
     delete process.env.GROQ_API_KEY
     const { runVoiceAgent } = await import('@/lib/voiceAgent')

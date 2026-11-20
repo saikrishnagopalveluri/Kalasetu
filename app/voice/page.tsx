@@ -22,6 +22,13 @@ function useVoiceLabels() {
     tapToSpeak: t('voice.tapToSpeak'),
     listening: t('voice.listening'),
     thinking: t('voice.thinking'),
+    // Shown in turn while waiting, so a slow answer never looks stuck.
+    thinkingSteps: [
+      { afterMs: 0, text: t('voice.thinking') },
+      { afterMs: 2_000, text: t('voice.stepData') },
+      { afterMs: 5_000, text: t('voice.stepAnswer') },
+      { afterMs: 10_000, text: t('voice.stepSlow') },
+    ],
     speaking: t('voice.speaking'),
     language: t('voice.language'),
     you: t('voice.you'),
@@ -94,6 +101,17 @@ function VoicePageInner() {
   const [typed, setTyped] = useState('')
   const [speakReplies, setSpeakReplies] = useState(true)
   const [seconds, setSeconds] = useState(0)
+  // How long the current answer has been on its way, for the progress steps.
+  const [thinkingMs, setThinkingMs] = useState(0)
+  useEffect(() => {
+    if (status !== 'thinking') return
+    const start = Date.now()
+    const id = setInterval(() => setThinkingMs(Date.now() - start), 500)
+    return () => {
+      clearInterval(id)
+      setThinkingMs(0)
+    }
+  }, [status])
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -248,8 +266,9 @@ function VoicePageInner() {
     } catch { /* clipboard blocked: the link is still visible to copy by hand */ }
   }
 
+  const thinkingStep = L.thinkingSteps.reduce((current, step, i) => (thinkingMs >= step.afterMs ? i : current), 0)
   const statusText = status === 'recording' ? `${L.listening} ${seconds}s`
-    : status === 'thinking' ? L.thinking
+    : status === 'thinking' ? L.thinkingSteps[thinkingStep].text
     : status === 'speaking' ? L.speaking
     : L.tapToSpeak
 
@@ -327,6 +346,13 @@ function VoicePageInner() {
         <p role="status" aria-live="polite" style={{ marginTop: 16, fontSize: 15, fontWeight: 600, color: status === 'recording' ? 'var(--ks-clay)' : 'var(--ks-earth)', textAlign: 'center', minHeight: 22 }}>
           {statusText}
         </p>
+        {status === 'thinking' && (
+          <div aria-hidden="true" style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            {L.thinkingSteps.map((step, i) => (
+              <span key={step.afterMs} style={{ width: i <= thinkingStep ? 22 : 8, height: 6, borderRadius: 3, background: i <= thinkingStep ? 'var(--ks-saffron)' : 'var(--ks-border)', transition: 'width 0.2s ease-out, background 0.2s ease-out' }} />
+            ))}
+          </div>
+        )}
         {notice && (
           <p role="alert" style={{ marginTop: 6, fontSize: 13, color: 'var(--ks-clay)', textAlign: 'center', maxWidth: 420 }}>{notice}</p>
         )}

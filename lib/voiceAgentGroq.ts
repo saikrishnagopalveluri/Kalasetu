@@ -18,6 +18,28 @@ const WHISPER_LANGS = new Set(['en', 'hi', 'te', 'ta', 'bn', 'mr', 'gu', 'kn', '
 
 type Message = { role: 'system' | 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: unknown; tool_call_id?: string }
 
+async function whisper(client: Groq, audio: NonNullable<AgentInput['audio']>, language: string | undefined, timeoutMs: number): Promise<string> {
+  const file = await toFile(Buffer.from(audio.data, 'base64'), 'speech.wav', { type: audio.mimeType })
+  const transcript = await client.audio.transcriptions.create(
+    { file, model: GROQ_TRANSCRIBE_MODEL, ...(language && WHISPER_LANGS.has(language) ? { language } : {}) },
+    { timeout: timeoutMs },
+  )
+  return transcript.text?.trim() ?? ''
+}
+
+// Just the words of a spoken question (about a second), or null when Groq
+// is not configured or fails. Used to spot price questions early.
+export async function transcribeAudio(audio: NonNullable<AgentInput['audio']>, language: string | undefined, timeoutMs: number): Promise<string | null> {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) return null
+  try {
+    return (await whisper(new Groq({ apiKey }), audio, language, timeoutMs)) || null
+  } catch (err) {
+    console.error('voiceAgent: quick transcription failed:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 export async function runGroqAgent(input: AgentInput, facts: Facts, deadline: number): Promise<AgentResult | null> {
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) return null
@@ -27,12 +49,7 @@ export async function runGroqAgent(input: AgentInput, facts: Facts, deadline: nu
   let question = input.text?.trim() || ''
   let heard: string | null = question || null
   if (!question && input.audio) {
-    const file = await toFile(Buffer.from(input.audio.data, 'base64'), 'speech.wav', { type: input.audio.mimeType })
-    const transcript = await client.audio.transcriptions.create(
-      { file, model: GROQ_TRANSCRIBE_MODEL, ...(input.language && WHISPER_LANGS.has(input.language) ? { language: input.language } : {}) },
-      { timeout: timeLeft() },
-    )
-    question = transcript.text?.trim() ?? ''
+    question = await whisper(client, input.audio, input.language, timeLeft())
     heard = question || null
   }
   if (!question) return null

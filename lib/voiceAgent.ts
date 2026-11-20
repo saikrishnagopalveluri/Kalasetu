@@ -10,7 +10,8 @@ import { callGenerateContent, geminiGrounded, responseParts, type GeminiResponse
 import { calculateFairPrice } from './fairPrice'
 import { languageName } from './languages'
 import { BRAND } from './brand'
-import { runGroqAgent } from './voiceAgentGroq'
+import { runGroqAgent, transcribeAudio } from './voiceAgentGroq'
+import { quickPriceAnswer } from './quickPrice'
 
 export const MAX_AGENT_STEPS = 4
 // Per attempt. Healthy calls finish in 2-10 s (measured live); a call
@@ -23,6 +24,16 @@ export const AGENT_TOTAL_BUDGET_MS = 45_000
 // Groq (the same fallback every other AI feature uses) answers with what
 // is left, so the artisan still gets a reply when Gemini is overloaded.
 export const AGENT_GEMINI_BUDGET_MS = 9_000
+// When Gemini fails twice in a row it is probably overloaded, so for the
+// next 2 minutes Groq answers first instead of every artisan waiting the
+// full 9 s. After that Gemini is tried first again, and it stays the
+// backup if Groq fails. Kept per server instance; resets on a cold start.
+// How long to wait for Whisper's words when checking a spoken question for
+// a plain price question. The agents keep working meanwhile.
+export const SPOKEN_PRICE_TRANSCRIBE_MS = 4_000
+export const GEMINI_SKIP_AFTER_FAILURES = 2
+export const GEMINI_SKIP_FOR_MS = 120_000
+const geminiHealth = { failures: 0, skipUntil: 0 }
 
 // A voice reply has to come back in seconds, so the agent uses the fast
 // "lite" models, which were the ones still answering tool calls when the
@@ -382,15 +393,59 @@ export function attachCards(cards: string[], facts: Facts, actions: AgentAction[
 }
 
 export async function runVoiceAgent(input: AgentInput): Promise<AgentResult> {
+  // A typed question that plainly gives materials in rupees and hours of
+  // work is answered by the calculator at once, with no AI call.
+  if (!input.audio && input.text) {
+    const quick = quickPriceAnswer(input.text, input.language)
+    if (quick) return quick
+  }
+  if (!input.audio) return answerWithAgents(input)
+
+  // Spoken: the agents start on the audio straight away, and at the same
+  // time Whisper writes down the words (about a second). If the words are
+  // a plain price question, the calculator answers and the agents' work is
+  // dropped; otherwise their answer is used, with no added wait.
+  const full = answerWithAgents(input).then((result) => ({ result }), (error: unknown) => ({ error }))
+  const quick = transcribeAudio(input.audio, input.language, SPOKEN_PRICE_TRANSCRIBE_MS).then((words) => {
+    const answer = words ? quickPriceAnswer(words, input.language) : null
+    return { quick: answer }
+  })
+  let outcome = await Promise.race([full, quick])
+  if ('quick' in outcome) {
+    if (outcome.quick) return outcome.quick
+    outcome = await full
+  }
+  if ('error' in outcome) throw outcome.error
+  return outcome.result
+}
+
+async function answerWithAgents(input: AgentInput): Promise<AgentResult> {
   const started = Date.now()
   const facts = await loadFacts(input.data)
+  const viaGroq = () => runGroqAgent(input, facts, started + AGENT_TOTAL_BUDGET_MS).catch((groqError) => {
+    console.error('voiceAgent: Groq failed:', groqError instanceof Error ? groqError.message : groqError)
+    return null
+  })
+
+  let geminiDeadline = started + AGENT_GEMINI_BUDGET_MS
+  if (Date.now() < geminiHealth.skipUntil) {
+    const first = await viaGroq()
+    if (first) return first
+    // Groq failed too: give Gemini its usual 9 s, within the total budget.
+    geminiDeadline = Math.min(Date.now() + AGENT_GEMINI_BUDGET_MS, started + AGENT_TOTAL_BUDGET_MS)
+  }
   try {
-    return await runGeminiAgent(input, facts, started + AGENT_GEMINI_BUDGET_MS)
+    const answer = await runGeminiAgent(input, facts, geminiDeadline)
+    geminiHealth.failures = 0
+    geminiHealth.skipUntil = 0
+    return answer
   } catch (geminiError) {
-    const fallback = await runGroqAgent(input, facts, started + AGENT_TOTAL_BUDGET_MS).catch((groqError) => {
-      console.error('voiceAgent: Groq fallback failed too:', groqError instanceof Error ? groqError.message : groqError)
-      return null
-    })
+    geminiHealth.failures += 1
+    if (geminiHealth.failures >= GEMINI_SKIP_AFTER_FAILURES) {
+      geminiHealth.skipUntil = Date.now() + GEMINI_SKIP_FOR_MS
+      geminiHealth.failures = 0
+    }
+    const fallback = await viaGroq()
     if (fallback) return fallback
     throw geminiError
   }

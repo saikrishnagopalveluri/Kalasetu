@@ -861,6 +861,9 @@ const translations = {
     "voice.liveSources": "Live from Google Search",
     "voice.poweredBy": "Powered by Google Gemini",
     "studio.artDirected": "Gemini studied your photo to match this to your product",
+    "voice.stepData": "Looking at your products and schemes…",
+    "voice.stepAnswer": "Getting your answer ready…",
+    "voice.stepSlow": "This is taking a little longer than usual. Still working…",
   },
   hi: {
     "nav.home": "होम",
@@ -1706,6 +1709,9 @@ const translations = {
     "voice.liveSources": "Google Search से सीधे",
     "voice.poweredBy": "Google Gemini द्वारा संचालित",
     "studio.artDirected": "Gemini ने आपकी फोटो देखकर इसे आपके सामान के हिसाब से तैयार किया है",
+    "voice.stepData": "आपके सामान और योजनाओं को देख रहे हैं…",
+    "voice.stepAnswer": "आपका जवाब तैयार कर रहे हैं…",
+    "voice.stepSlow": "इसमें थोड़ा ज़्यादा समय लग रहा है। अभी भी काम जारी है…",
   },
   te: {
     "nav.home": "హోమ్",
@@ -2551,6 +2557,9 @@ const translations = {
     "voice.liveSources": "Google సెర్చ్ నుండి లైవ్",
     "voice.poweredBy": "Google Gemini ద్వారా నడుపబడుతోంది",
     "studio.artDirected": "మీ వస్తువుకు సరిపోయేలా Gemini మీ ఫోటోను చూసి అర్థం చేసుకుంది",
+    "voice.stepData": "మీ వస్తువులను మరియు పథకాలను చూస్తున్నాను…",
+    "voice.stepAnswer": "మీకు సమాధానం సిద్ధం చేస్తున్నాను…",
+    "voice.stepSlow": "ఇది మామూలు కంటే కొంచెం ఎక్కువ సమయం పడుతోంది. ఇంకా పని చేస్తున్నాను…",
   },
   bn: {
     "nav.home": "হোম",
@@ -3396,6 +3405,9 @@ const translations = {
     "voice.liveSources": "Google Search থেকে সরাসরি",
     "voice.poweredBy": "Google Gemini দ্বারা পরিচালিত",
     "studio.artDirected": "আপনার পণ্যের সাথে মেলানোর জন্য Gemini আপনার ছবি দেখেছে",
+    "voice.stepData": "আপনার জিনিসপত্র আর সরকারি সুযোগ-সুবিধাগুলো দেখছি…",
+    "voice.stepAnswer": "আপনার উত্তরটা তৈরি করছি…",
+    "voice.stepSlow": "একটু দেরি হচ্ছে। কাজ চলছে…",
   },
   mr: {
     "nav.home": "होम",
@@ -4241,6 +4253,9 @@ const translations = {
     "voice.liveSources": "Google Search वरून थेट माहिती",
     "voice.poweredBy": "Google Gemini द्वारे समर्थित",
     "studio.artDirected": "तुमच्या उत्पादनाशी जुळवण्यासाठी Gemini ने तुमच्या फोटोचा अभ्यास केला आहे",
+    "voice.stepData": "तुमच्या वस्तू आणि योजना बघत आहे…",
+    "voice.stepAnswer": "तुमचे उत्तर तयार करत आहे…",
+    "voice.stepSlow": "याला नेहमीपेक्षा थोडा जास्त वेळ लागत आहे. अजूनही काम सुरू आहे…",
   },
   ta: {
     "nav.home": "முகப்பு",
@@ -5086,6 +5101,9 @@ const translations = {
     "voice.liveSources": "Google Search-லிருந்து நேரலையாக",
     "voice.poweredBy": "Google Gemini மூலம் இயங்குகிறது",
     "studio.artDirected": "உங்க பொருளுக்கு ஏத்த மாதிரி இருக்கணும்னு Gemini உங்க போட்டோவை பார்த்து செஞ்சிருக்கு",
+    "voice.stepData": "உங்கள் பொருட்கள் மற்றும் திட்டங்களை பார்த்துக்கொண்டிருக்கிறேன்…",
+    "voice.stepAnswer": "உங்களுக்கான பதிலை தயார் செய்துகொண்டிருக்கிறேன்…",
+    "voice.stepSlow": "இது வழக்கத்தை விட கொஞ்சம் அதிக நேரம் எடுக்குது. இன்னும் வேலை செஞ்சுகிட்டு இருக்கேன்…",
   },
   ur: {
     "nav.home": "ہوم",
@@ -5931,6 +5949,9 @@ const translations = {
     "voice.liveSources": "Google Search سے براہِ راست",
     "voice.poweredBy": "Google Gemini کی مدد سے تیار کردہ",
     "studio.artDirected": "Gemini نے آپ کی تصویر کو دیکھ کر اسے آپ کی مصنوعات کے مطابق ترتیب دیا ہے",
+    "voice.stepData": "آپ کی مصنوعات اور اسکیموں کو دیکھ رہے ہیں…",
+    "voice.stepAnswer": "آپ کا جواب تیار کر رہے ہیں…",
+    "voice.stepSlow": "اس میں معمول سے تھوڑا زیادہ وقت لگ رہا ہے۔ ابھی بھی کام جاری ہے…",
   },
   gu: {
     "nav.home": "હોમ",
@@ -6776,6 +6797,9 @@ const translations = {
     "voice.liveSources": "Google Search પરથી સીધું",
     "voice.poweredBy": "Google Gemini દ્વારા સંચાલિત",
     "studio.artDirected": "તમારી પ્રોડક્ટ સાથે મેળ બેસાડવા માટે Gemini એ તમારા ફોટાને તપાસ્યો છે",
+    "voice.stepData": "તમારી વસ્તુઓ અને યોજનાઓ જોઈ રહ્યા છીએ…",
+    "voice.stepAnswer": "તમારો જવાબ તૈયાર કરી રહ્યા છીએ…",
+    "voice.stepSlow": "આમાં સામાન્ય કરતા થોડી વાર લાગી રહી છે. હજુ કામ ચાલુ છે…",
   },
   kn: {
     "nav.home": "ಮುಖಪುಟ",
@@ -7621,6 +7645,9 @@ const translations = {
     "voice.liveSources": "Google Search ನಿಂದ ನೇರ ಮಾಹಿತಿ",
     "voice.poweredBy": "Google Gemini ಇಂದ ನಡೆಸಲ್ಪಡುತ್ತದೆ",
     "studio.artDirected": "ನಿಮ್ಮ ಉತ್ಪನ್ನಕ್ಕೆ ತಕ್ಕಂತೆ ಹೊಂದಿಸಲು Gemini ನಿಮ್ಮ ಫೋಟೋವನ್ನು ಪರಿಶೀಲಿಸಿದೆ",
+    "voice.stepData": "ನಿಮ್ಮ ಉತ್ಪನ್ನಗಳು ಮತ್ತು ಯೋಜನೆಗಳನ್ನು ನೋಡುತ್ತಿದ್ದೇವೆ…",
+    "voice.stepAnswer": "ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತಿದ್ದೇವೆ…",
+    "voice.stepSlow": "ಇದು ಎಂದಿಗಿಂತ ಸ್ವಲ್ಪ ಸಮಯ ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದೆ. ಇನ್ನೂ ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇವೆ…",
   },
   or: {
     "nav.home": "ହୋମ",
@@ -8466,6 +8493,9 @@ const translations = {
     "voice.liveSources": "Google Search ରୁ ସିଧା",
     "voice.poweredBy": "Google Gemini ଦ୍ୱାରା ପରିଚାଳିତ",
     "studio.artDirected": "ଆପଣଙ୍କ ପ୍ରଡକ୍ଟ ସହିତ ମେଳ କରିବା ପାଇଁ Gemini ଆପଣଙ୍କ ଫଟୋକୁ ଦେଖିଛି",
+    "voice.stepData": "ଆପଣଙ୍କ ଜିନିଷ ଓ ସରକାରୀ ଯୋଜନାଗୁଡ଼ିକ ଦେଖୁଛୁ…",
+    "voice.stepAnswer": "ଆପଣଙ୍କ ପାଇଁ ଉତ୍ତର ପ୍ରସ୍ତୁତ କରୁଛୁ…",
+    "voice.stepSlow": "ଏଥିରେ ସାଧାରଣତଃ ସମୟ ଲାଗୁଥିବାଠାରୁ ଟିକେ ଅଧିକ ସମୟ ଲାଗୁଛି। ଆମେ କାମ କରୁଛୁ…",
   },
   pa: {
     "nav.home": "ਹੋਮ",
@@ -9311,6 +9341,9 @@ const translations = {
     "voice.liveSources": "Google Search ਤੋਂ ਸਿੱਧਾ",
     "voice.poweredBy": "Google Gemini ਦੁਆਰਾ ਚਲਾਇਆ ਗਿਆ",
     "studio.artDirected": "Gemini ਨੇ ਤੁਹਾਡੀ ਫੋਟੋ ਨੂੰ ਦੇਖ ਕੇ ਇਸ ਨੂੰ ਤੁਹਾਡੇ ਉਤਪਾਦ ਨਾਲ ਮਿਲਾਇਆ ਹੈ",
+    "voice.stepData": "ਤੁਹਾਡੀਆਂ ਚੀਜ਼ਾਂ ਅਤੇ ਸਕੀਮਾਂ ਦੇਖ ਰਹੇ ਹਾਂ…",
+    "voice.stepAnswer": "ਤੁਹਾਡਾ ਜਵਾਬ ਤਿਆਰ ਕਰ ਰਹੇ ਹਾਂ…",
+    "voice.stepSlow": "ਇਸ ਵਿੱਚ ਥੋੜ੍ਹਾ ਜ਼ਿਆਦਾ ਸਮਾਂ ਲੱਗ ਰਿਹਾ ਹੈ। ਅਸੀਂ ਅਜੇ ਵੀ ਕੰਮ ਕਰ ਰਹੇ ਹਾਂ…",
   },
   ml: {
     "nav.home": "ഹോം",
@@ -10156,6 +10189,9 @@ const translations = {
     "voice.liveSources": "Google Search-ൽ നിന്നുള്ള തത്സമയ വിവരങ്ങൾ",
     "voice.poweredBy": "Google Gemini നൽകുന്ന സേവനം",
     "studio.artDirected": "നിങ്ങളുടെ ഉൽപ്പന്നവുമായി പൊരുത്തപ്പെടാൻ Gemini നിങ്ങളുടെ ചിത്രം പരിശോധിച്ചു",
+    "voice.stepData": "നിങ്ങളുടെ ഉൽപ്പന്നങ്ങളും പദ്ധതികളും പരിശോധിക്കുന്നു…",
+    "voice.stepAnswer": "നിങ്ങൾക്കുള്ള മറുപടി തയ്യാറാക്കുന്നു…",
+    "voice.stepSlow": "ഇതിന് സാധാരണയേക്കാൾ കുറച്ചു സമയം എടുക്കുന്നു. ഇപ്പോഴും നോക്കുന്നുണ്ട്…",
   },
   as: {
     "nav.home": "গৃহ",
@@ -11001,6 +11037,9 @@ const translations = {
     "voice.liveSources": "Google Search-ৰ পৰা পোৱা লাইভ তথ্য",
     "voice.poweredBy": "Google Gemini-ৰ সহায়ত চলিছে",
     "studio.artDirected": "আপোনাৰ সামগ্ৰীটোৰ সৈতে মিলিবলৈ Gemini-এ আপোনাৰ ফটোখন ভালদৰে চাই লৈছে",
+    "voice.stepData": "আপোনাৰ সামগ্ৰী আৰু আঁচনিবোৰ চাই আছোঁ…",
+    "voice.stepAnswer": "আপোনাৰ উত্তৰটো প্ৰস্তুত কৰি আছোঁ…",
+    "voice.stepSlow": "এইটো স্বাভাৱিকতকৈ অলপ বেছি সময় লৈছে। আজিও কাম চলি আছে…",
   },
   ne: {
     "nav.home": "होम",
@@ -11846,6 +11885,9 @@ const translations = {
     "voice.liveSources": "Google Search बाट सिधै",
     "voice.poweredBy": "Google Gemini द्वारा संचालित",
     "studio.artDirected": "तपाईंको सामानसँग मिल्दो बनाउन Gemini ले तपाईंको फोटोलाई राम्ररी हेरेको छ",
+    "voice.stepData": "तपाईंको सामान र सरकारी योजना हेर्दै…",
+    "voice.stepAnswer": "तपाईंको जवाफ तयार गर्दै…",
+    "voice.stepSlow": "सधैंभन्दा अलिक बढी समय लाग्दैछ। अझै काम हुँदैछ…",
   },
   sa: {
     "nav.home": "गृहम्",
@@ -12691,6 +12733,9 @@ const translations = {
     "voice.liveSources": "Google Search इत्यस्मात् साक्षात्",
     "voice.poweredBy": "Google Gemini द्वारा चालितम्",
     "studio.artDirected": "तव उत्पादस्य अनुरूपं कर्तुं Gemini इत्यनेन तव चित्रं दृष्टम्",
+    "voice.stepData": "भवतः उत्पादम् योजनाश्च पश्यामः…",
+    "voice.stepAnswer": "भवतः उत्तरं सज्जीकुर्मः…",
+    "voice.stepSlow": "अस्मिन् किञ्चित् विलम्बः भवति। कार्यं प्रचलति…",
   },
   gom: {
     "nav.home": "मुखपान",
@@ -13536,6 +13581,9 @@ const translations = {
     "voice.liveSources": "Google Search थावन थेट",
     "voice.poweredBy": "Google Gemini चो आधार",
     "studio.artDirected": "तुमच्या वस्तू सावन जुळोवपा खातीर Gemini न तुमच्या फोटोचो अभ्यास केला",
+    "voice.stepData": "तुमचो माल आनी येवजण्यो पळयता…",
+    "voice.stepAnswer": "तुमची जाप तयार करता…",
+    "voice.stepSlow": "सदच्या परस थोडो चड वेळ लागता. अजून काम चालू आसा…",
   },
   sd: {
     "nav.home": "هوم",
@@ -14381,6 +14429,9 @@ const translations = {
     "voice.liveSources": "گوگل سرچ تان سڌو",
     "voice.poweredBy": "گوگل Gemini جي مدد سان",
     "studio.artDirected": "Gemini توهان جي تصوير ڏسي هن کي توهان جي پيداوار سان ملائي ڇڏيو آهي",
+    "voice.stepData": "توهان جون شيون ۽ اسڪيمون ڏسي رهيو آهي…",
+    "voice.stepAnswer": "توهان جو جواب تيار ڪري رهيو آهي…",
+    "voice.stepSlow": "معمول کان ٿورو وڌيڪ وقت لڳي رهيو آهي. ڪم اڃا جاري آهي…",
   },
   mai: {
     "nav.home": "होम",
@@ -15226,6 +15277,9 @@ const translations = {
     "voice.liveSources": "गूगल सर्च सँ सीधा",
     "voice.poweredBy": "गूगल Gemini द्वारा संचालित",
     "studio.artDirected": "Gemini अहाँक फोटो देखलकै आ अहाँक सामान सँ ओकर मेल बैसौलकै",
+    "voice.stepData": "अहाँक सामान आ योजना देखि रहल अछि…",
+    "voice.stepAnswer": "अहाँक जवाब तैयार क' रहल अछि…",
+    "voice.stepSlow": "सामान्य सँ किछु बेसी समय लागि रहल अछि। काज एखनो चलि रहल अछि…",
   },
   doi: {
     "nav.home": "होम",
@@ -16071,6 +16125,9 @@ const translations = {
     "voice.liveSources": "Google सर्च शा सीधे",
     "voice.poweredBy": "Google Gemini आधारे",
     "studio.artDirected": "Gemini ने तुंदे उत्पाद दे हिसाबै कन्नै मिलान लेई तुंदी फोटो दा अध्ययन कीता है",
+    "voice.stepData": "तुंदा सामान ते स्कीमें दिक्खा करदा पैए…",
+    "voice.stepAnswer": "तुंदा जवाब त्यार करदा पैए…",
+    "voice.stepSlow": "आम कोला थोड़ा मता टैम लग्गा करदा ऐ। कम्म हजें चला करदा ऐ…",
   },
   ks: {
     "nav.home": "ہوم",
@@ -16916,6 +16973,9 @@ const translations = {
     "voice.liveSources": "Google Search پؠٹھ براہِ راست",
     "voice.poweredBy": "Google Gemini سٟتؠ چلن وول",
     "studio.artDirected": "Gemini چھِ تُہنٛز تصویر گژھنٕہ پتہٕ یہِ تُہنٛدِ ہُنرِ سٟتؠ ملأوُتھ",
+    "voice.stepData": "تُہٕنز مال تہٕ سکیم وُچھان…",
+    "voice.stepAnswer": "تُہُند جواب تیار کران…",
+    "voice.stepSlow": "یَتھ چھُ معمولس کھوتہٕ کینژھا زیادہ وقت لگان۔ کٲم چھےٚ جٲری…",
   },
   brx: {
     "nav.home": "होम",
@@ -17761,6 +17821,9 @@ const translations = {
     "voice.liveSources": "Google Search निफ्राय दिन्थिफुंनाय",
     "voice.poweredBy": "Google Gemini नि हेफाजाबजों",
     "studio.artDirected": "Gemini आ नोंनि थिफुनायखौ नायबिजिरना बेखौ नोंनि मुवाजों मिलायना होदों",
+    "voice.stepData": "नोंथांनि मुवाफोर आरो माखि आदब नायगासिनो दं…",
+    "voice.stepAnswer": "नोंथांनि फिननाय थियारि खालामगासिनो दं…",
+    "voice.stepSlow": "गुबुन समाव खौ बेसिन गोबां समाव लागिगासिनो दं। हाबा फिन जागासिनो दं…",
   },
   mni: {
     "nav.home": "হোম",
@@ -18606,6 +18669,9 @@ const translations = {
     "voice.liveSources": "Google Search দগী লৈবাক্কী ওইবা পাউ",
     "voice.poweredBy": "Google Gemini দগী শাগৎপা",
     "studio.artDirected": "নহাক্কী পোৎথোক অসিগা চৎননবা Gemini না নহাক্কী ফটো অদু য়েংলগা শেমখিবনি",
+    "voice.stepData": "মশাগী পোৎলম অমসুং স্কিমশিং য়েংলি…",
+    "voice.stepAnswer": "মশাগী পাউখুম শেম্লি…",
+    "voice.stepSlow": "মতম খরা হেন্না চংলি। থবক হৌজিকসু তৌরি…",
   },
   sat: {
     "nav.home": "ᱚᱲᱟᱜ",
@@ -19451,6 +19517,9 @@ const translations = {
     "voice.liveSources": "Google ᱥᱮᱸᱫᱽᱨᱟ (Search) ᱠᱷᱚᱱ ᱥᱚᱡᱷᱮ",
     "voice.poweredBy": "Google Gemini ᱛᱮ ᱪᱟᱹᱞᱩᱜ ᱠᱟᱱᱟ",
     "studio.artDirected": "Gemini ᱟᱢᱟᱜ ᱪᱤᱛᱟᱹᱨ ᱧᱮᱞ ᱠᱟᱛᱮ ᱟᱢᱟᱜ ᱡᱤᱱᱤᱥ ᱥᱟᱶ ᱱᱚᱣᱟᱭ ᱢᱮᱞ ᱟᱠᱟᱫᱟ",
+    "voice.stepData": "ᱟᱢᱟᱜ ᱡᱤᱱᱤᱥ ᱟᱨ ᱭᱳᱡᱽᱱᱟ ᱧᱮᱞ ᱮᱫᱟᱭ…",
+    "voice.stepAnswer": "ᱟᱢᱟᱜ ᱛᱮᱞᱟ ᱛᱮᱭᱟᱨ ᱮᱫᱟᱭ…",
+    "voice.stepSlow": "ᱥᱟᱫᱷᱟᱨᱚᱬ ᱠᱷᱚᱱ ᱛᱤᱱᱟᱹᱜ ᱵᱟᱹᱲᱛᱤ ᱚᱠᱛᱚ ᱦᱟᱜ ᱮᱫᱟ᱾ ᱱᱤᱛᱚᱜ ᱦᱚᱸ ᱠᱟᱹᱢᱤ ᱮᱫᱟᱭ…",
   },
 } as const
 
