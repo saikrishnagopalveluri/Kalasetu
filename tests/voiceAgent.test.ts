@@ -156,6 +156,22 @@ describe('one-call answers from preloaded facts', () => {
     expect(result.actions).toEqual([{ type: 'catalogue', url: 'https://x.test/a/lakshmi' }])
   })
 
+  it('opens a screen from the CARDS line in one call, and ignores screens that do not exist', async () => {
+    const fetchMock = stubFetch(textReply('REPLY: Opening the photoshoot for you.\nCARDS: open:photoshoot open:admin'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'I want a photo of my saree', data: fakeData() })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.actions).toEqual([{ type: 'open', screen: 'photoshoot', path: '/studio', label: 'AI Photoshoot' }])
+  })
+
+  it("asks for replies in each language's own script and hands over to Groq after 14 seconds", async () => {
+    const fetchMock = stubFetch(textReply('REPLY: ok'))
+    const { runVoiceAgent, AGENT_GEMINI_BUDGET_MS } = await import('@/lib/voiceAgent')
+    await runVoiceAgent({ text: 'hi', language: 'te', data: fakeData() })
+    expect(bodyOf(fetchMock, 0).systemInstruction.parts[0].text).toContain("Always reply in Telugu, written in Telugu's own script")
+    expect(AGENT_GEMINI_BUDGET_MS).toBe(14_000)
+  })
+
   it('still answers when a database read fails, leaving that fact out', async () => {
     const data = fakeData()
     data.listProducts.mockRejectedValue(new Error('db down'))

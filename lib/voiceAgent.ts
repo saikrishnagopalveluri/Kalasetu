@@ -19,10 +19,10 @@ export const AGENT_ATTEMPT_TIMEOUT_MS = 12_000
 // For the whole answer, so it either finishes or fails cleanly well
 // before the route's 60 s platform limit cuts it off mid-reply.
 export const AGENT_TOTAL_BUDGET_MS = 45_000
-// Gemini gets the first 30 s; if no Gemini model has answered by then,
+// Gemini gets the first 14 s; if no Gemini model has answered by then,
 // Groq (the same fallback every other AI feature uses) answers with what
 // is left, so the artisan still gets a reply when Gemini is overloaded.
-export const AGENT_GEMINI_BUDGET_MS = 30_000
+export const AGENT_GEMINI_BUDGET_MS = 14_000
 
 // A voice reply has to come back in seconds, so the agent uses the fast
 // "lite" models, which were the ones still answering tool calls when the
@@ -149,18 +149,21 @@ export function systemPrompt(language: string | undefined, facts = ''): string {
 
 - Questions about open schemes, the artisan's products, profile or catalogue link: answer straight from the facts below, without calling a tool. Call find_schemes only for a specific kind of scheme the facts don't cover, and search_schemes_online for anything new or recent.
 - Price questions with a material cost and hours always go through suggest_fair_price. If they ask for a price without those numbers, ask for the material cost and hours worked; never guess a number.
-- When the artisan wants to do something in the app, call open_screen: taking, making or improving a product photo opens "photoshoot"; writing a description, caption or post opens "listing"; making or sharing a catalogue opens "catalogue"; a price calculator opens "calculator"; lessons or learning open "learn"; a new design idea opens "design"; their product list opens "products". Do this even when you also explain something.
+- Questions (what schemes exist, my catalogue link, my products, prices) are answered in words. Never answer a question only by opening a screen, and never reply with just "OK": always say something useful in 1 to 4 sentences.
+- When the artisan asks to DO something in the app, open the screen for it by putting open:<screen> on the CARDS line, and say so in the reply: taking, making or improving a product photo is open:photoshoot; writing a description, caption or post is open:listing; making a catalogue is open:catalogue; a price calculator is open:calculator; lessons or learning is open:learn; a new design idea is open:design; their product list is open:products.
 - Call the tool in this same turn. Never say you will look something up, check, or find something later: either call the tool now or answer.
 - Never invent prices, schemes, deadlines or links. Only use numbers and names the tools return. If a tool returns nothing, say so honestly.
 - Speak plainly, like a friendly person who knows crafts. 2 to 4 short sentences. No markdown, no lists, no symbols, no emojis, because this is spoken aloud. Say amounts as rupees.
 - Only help with crafts, the artisan's business, this app and schemes. For anything else, say briefly that you help with their craft business.
 - If someone sounds in crisis or mentions self-harm, gently share the KIRAN helpline 1800-599-0019 (24/7, free) and encourage them to call.
-${lang ? `- Always reply in ${lang}, whatever language the artisan uses.` : "- Reply in the same language the artisan speaks."}
+${lang ? `- Always reply in ${lang}, written in ${lang}'s own script (never in Roman letters), whatever language the artisan uses.` : "- Reply in the same language and script the artisan uses."}
 
 Format your final answer exactly as three lines:
 HEARD: <what the artisan said, written in their language and script>
 REPLY: <your spoken reply>
-CARDS: <"schemes" if you talked about schemes from the facts, "catalogue" if you gave the catalogue link, otherwise "none">${facts ? `\n\n${facts}` : ''}`
+CARDS: <any of: "schemes" if you talked about schemes from the facts, "catalogue" if you gave the catalogue link, "open:<screen>" to open a screen; or "none">${facts ? `
+
+${facts}` : ''}`
 }
 
 type Part = Record<string, unknown>
@@ -227,7 +230,7 @@ export function parseAgentText(text: string): { heard: string | null; reply: str
   const cleaned = text.replace(/\*\*/g, '').trim()
   const heard = cleaned.match(/^\s*HEARD:\s*(.*)$/im)?.[1]?.trim() || null
   const cardsLine = cleaned.match(/^\s*CARDS:\s*(.*)$/im)?.[1] ?? ''
-  const cards = cardsLine.toLowerCase().split(/[\s,]+/).filter((c) => c === 'schemes' || c === 'catalogue')
+  const cards = cardsLine.toLowerCase().split(/[\s,]+/).filter((c) => c === 'schemes' || c === 'catalogue' || /^open:[a-z]+$/.test(c))
   const withoutCards = cleaned.replace(/^\s*CARDS:.*$/im, '').trim()
   const replyIdx = withoutCards.search(/^\s*REPLY:/im)
   const reply = replyIdx === -1
@@ -366,6 +369,15 @@ export function attachCards(cards: string[], facts: Facts, actions: AgentAction[
   }
   if (cards.includes('catalogue') && !actions.some((a) => a.type === 'catalogue')) {
     actions.push({ type: 'catalogue', url: facts.catalogueUrl })
+  }
+  // Opening a screen from the CARDS line saves a whole tool round trip.
+  // Only real screens of the app, from the fixed list, can be opened.
+  for (const card of cards) {
+    const screen = card.startsWith('open:') ? card.slice(5) : null
+    if (screen && Object.hasOwn(APP_SCREENS, screen) && !actions.some((a) => a.type === 'open' && a.screen === screen)) {
+      const target = APP_SCREENS[screen as ScreenId]
+      actions.push({ type: 'open', screen: screen as ScreenId, path: target.path, label: target.label })
+    }
   }
 }
 
