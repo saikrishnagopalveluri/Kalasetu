@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { IconCatalogue } from '@/components/CraftIcons'
 import { useEffect, useRef, useState } from 'react'
 import { useFollowingState } from '@/lib/useFollowingState'
 import { supabase } from '@/lib/supabase'
@@ -319,7 +320,7 @@ function CataloguePageInner() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
-        <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1.15 }}>📖</span>
+        <span aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(196,85,45,0.1)', color: 'var(--ks-clay)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconCatalogue size={22} /></span>
         <div>
           <h1 style={pageTitleStyle}>{t('catalogue.title')}</h1>
           <p style={pageSubtitleStyle}>{t('catalogue.subtitle')}</p>

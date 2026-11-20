@@ -110,6 +110,8 @@ html {
 
 body {
   font-family: var(--font-body);
+  /* Digits keep one width, so counters and prices don't jump as they change. */
+  font-variant-numeric: tabular-nums;
   /* A faint diamond-lattice weave (same motif as .ks-lattice) under the
      solid page colour — a whisper of woven texture across every screen,
      not just the surfaces that already opt into .ks-lattice explicitly. */
@@ -121,6 +123,7 @@ body {
 
 /* ── Typography ─────────────────────────────────────────── */
 h1, h2, h3, h4 {
+  text-wrap: balance;
   font-family: var(--font-display);
   font-weight: 700;
   color: var(--ks-earth);

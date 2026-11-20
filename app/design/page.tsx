@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { IconDesign } from '@/components/CraftIcons'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import { useAI } from '@/lib/useAI'
@@ -247,7 +248,7 @@ function DesignPageInner() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
-        <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1.15 }}>🎨</span>
+        <span aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(196,85,45,0.1)', color: 'var(--ks-clay)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconDesign size={22} /></span>
         <div>
           <h1 style={pageTitleStyle}>{t('design.title')}</h1>
           <p style={pageSubtitleStyle}>{t('design.subtitle')}</p>

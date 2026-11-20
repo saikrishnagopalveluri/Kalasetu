@@ -41,17 +41,19 @@ const GROW_ACTIONS: QuickAction[] = [
   { Icon: IconPricing, titleKey: 'action.pricing.title', descKey: 'action.pricing.desc', href: '/pricing', accent: '#D4A017' },
 ]
 
-const DEMO_RECENT: { emoji: string; labelKey: TranslationKey; productKey: TranslationKey; presetKey: TranslationKey | null; timeKey: TranslationKey; timeN?: number }[] = [
-  { emoji: '📸', labelKey: 'home.demo.photoshoot', productKey: 'home.demo.product.jamdani', presetKey: 'studio.preset.studio', timeKey: 'time.hoursAgo', timeN: 2 },
-  { emoji: '📢', labelKey: 'home.demo.instagramPost', productKey: 'home.demo.product.kalamkari', presetKey: 'studio.preset.festival', timeKey: 'time.yesterday' },
-  { emoji: '✍️', labelKey: 'home.demo.description', productKey: 'home.demo.product.filigree', presetKey: null, timeKey: 'time.daysAgo', timeN: 2 },
+type RowIcon = React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+
+const DEMO_RECENT: { Icon: RowIcon; labelKey: TranslationKey; productKey: TranslationKey; presetKey: TranslationKey | null; timeKey: TranslationKey; timeN?: number }[] = [
+  { Icon: IconStudio, labelKey: 'home.demo.photoshoot', productKey: 'home.demo.product.jamdani', presetKey: 'studio.preset.studio', timeKey: 'time.hoursAgo', timeN: 2 },
+  { Icon: IconPromote, labelKey: 'home.demo.instagramPost', productKey: 'home.demo.product.kalamkari', presetKey: 'studio.preset.festival', timeKey: 'time.yesterday' },
+  { Icon: IconContent, labelKey: 'home.demo.description', productKey: 'home.demo.product.filigree', presetKey: null, timeKey: 'time.daysAgo', timeN: 2 },
 ]
 
-const CONTENT_TYPE_META: Record<string, { emoji: string; labelKey: TranslationKey }> = {
-  description: { emoji: '✍️', labelKey: 'home.contentType.description' },
-  caption: { emoji: '📸', labelKey: 'home.contentType.caption' },
-  whatsapp: { emoji: '💬', labelKey: 'home.contentType.whatsapp' },
-  catalogue: { emoji: '📋', labelKey: 'home.contentType.catalogue' },
+const CONTENT_TYPE_META: Record<string, { Icon: RowIcon; labelKey: TranslationKey }> = {
+  description: { Icon: IconContent, labelKey: 'home.contentType.description' },
+  caption: { Icon: IconPromote, labelKey: 'home.contentType.caption' },
+  whatsapp: { Icon: IconCoach, labelKey: 'home.contentType.whatsapp' },
+  catalogue: { Icon: IconCatalogue, labelKey: 'home.contentType.catalogue' },
 }
 
 const DAILY_CONTENT_LIMIT = 20
@@ -231,6 +233,8 @@ function HomePageContent() {
 
       <div className="ks-frieze" style={{ marginBottom: 24 }} />
 
+      <VoiceAgentBanner />
+
       {/* ── Getting started checklist ───────────────────── */}
       {stats && checklistTotal > 0 && (
         <div id="tour-challenges" className="ks-motif-frame" style={{ marginBottom: 20 }}>
@@ -293,50 +297,13 @@ function HomePageContent() {
         </div>
       )}
 
-      {/* ── Invite & Earn banner ────────────────────────── */}
-      {/* Always visible, not gated on artisansEmpowered > 0 — this is the
-          primary discovery surface for the Saathi referral program, and
-          most artisans start at zero empowerments. Gating it on a nonzero
-          count would hide the entire feature from exactly the people who
-          haven't used it yet. */}
-      <a
-        id="tour-saathi-banner"
-        href="/saathi"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
-          background: 'var(--ks-clay)', borderRadius: 14, padding: '16px 18px',
-          marginBottom: 20, boxShadow: '0 4px 14px rgba(196,85,45,0.25)',
-        }}
-      >
-        <div style={{
-          width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <IconSaathi size={22} style={{ color: '#fff' }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
-            {t('saathi.ctaTitle')}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
-            {t('saathi.ctaDesc')}
-          </div>
-        </div>
-        <span style={{
-          flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ks-clay)',
-          background: '#fff', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap',
-        }}>
-          {t('saathi.inviteArtisan')}
-        </span>
-      </a>
-
       {/* ── Impact + wallet + learning nudge ────────────── */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
         <Link href="/wallet" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
           <IconWallet size={18} style={{ color: 'var(--ks-clay)' }} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>
-              {walletBalance === null ? '…' : walletBalance}
+              {walletBalance === null ? <span className="ks-skeleton" aria-label={t('common.loading')} style={{ display: 'inline-block', width: 36, height: 14, verticalAlign: 'middle' }} /> : walletBalance}
             </div>
             <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.kalaPoints')}</div>
           </div>
@@ -357,7 +324,6 @@ function HomePageContent() {
         </Link>
       </div>
 
-      <VoiceAgentBanner />
 
       {/* ── Quick actions ────────────────────────────────── */}
       <h2 style={{
@@ -464,6 +430,43 @@ function HomePageContent() {
         }
       `}</style>
 
+      {/* ── Invite & Earn banner ────────────────────────── */}
+      {/* Always visible, not gated on artisansEmpowered > 0 — this is the
+          primary discovery surface for the Saathi referral program, and
+          most artisans start at zero empowerments. Gating it on a nonzero
+          count would hide the entire feature from exactly the people who
+          haven't used it yet. */}
+      <a
+        id="tour-saathi-banner"
+        href="/saathi"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
+          background: 'var(--ks-clay)', borderRadius: 14, padding: '16px 18px',
+          marginBottom: 20, boxShadow: '0 4px 14px rgba(196,85,45,0.25)',
+        }}
+      >
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <IconSaathi size={22} style={{ color: '#fff' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+            {t('saathi.ctaTitle')}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
+            {t('saathi.ctaDesc')}
+          </div>
+        </div>
+        <span style={{
+          flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ks-clay)',
+          background: '#fff', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap',
+        }}>
+          {t('saathi.inviteArtisan')}
+        </span>
+      </a>
+
       {/* ── Recent creations ─────────────────────────────── */}
       <h2 id="tour-recent" style={{
         fontFamily: 'var(--font-display)',
@@ -479,7 +482,7 @@ function HomePageContent() {
           {DEMO_RECENT.map((item) => {
             const time = item.timeN ? t(item.timeKey).replace('{n}', String(item.timeN)) : t(item.timeKey)
             return (
-              <RecentRowCard key={item.productKey} emoji={item.emoji} title={t(item.productKey)} subtitle={`${t(item.labelKey)} · ${time}`} preset={item.presetKey ? t(item.presetKey) : null} />
+              <RecentRowCard key={item.productKey} Icon={item.Icon} title={t(item.productKey)} subtitle={`${t(item.labelKey)} · ${time}`} preset={item.presetKey ? t(item.presetKey) : null} />
             )
           })}
         </div>
@@ -496,12 +499,12 @@ function HomePageContent() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {recentToShow.map((item) => {
             const meta = CONTENT_TYPE_META[item.content_type]
-            const emoji = meta?.emoji ?? '✨'
+            const Icon = meta?.Icon ?? IconContent
             const label = meta ? t(meta.labelKey) : item.content_type
             return (
               <RecentRowCard
                 key={item.id}
-                emoji={emoji}
+                Icon={Icon}
                 title={item.product_name}
                 subtitle={`${label} · ${timeAgo(item.created_at, t)}`}
                 preset={null}
@@ -539,13 +542,13 @@ export default function HomePage() {
 
 /* ── Recent creation row ─────────────────────────────────── */
 function RecentRowCard({
-  emoji,
+  Icon,
   title,
   subtitle,
   preset,
   onClick,
 }: {
-  emoji: string
+  Icon: RowIcon
   title: string
   subtitle: string
   preset: string | null
@@ -579,10 +582,10 @@ function RecentRowCard({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 18,
         flexShrink: 0,
+        color: 'var(--ks-clay)',
       }}>
-        {emoji}
+        <Icon size={20} />
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ks-earth)' }}>

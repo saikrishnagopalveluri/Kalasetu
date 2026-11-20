@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { IconCoach } from '@/components/CraftIcons'
 import { useFollowingState } from '@/lib/useFollowingState'
 import { useAI } from '@/lib/useAI'
 import RequireAuth from '@/components/RequireAuth'
@@ -47,7 +48,7 @@ function CoachPageInner() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '60vh' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
-        <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1.15 }}>💬</span>
+        <span aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(196,85,45,0.1)', color: 'var(--ks-clay)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconCoach size={22} /></span>
         <div>
           <h1 style={pageTitleStyle}>{t('coach.title')}</h1>
           <p style={pageSubtitleStyle}>{t('coach.subtitle')}</p>

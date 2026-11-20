@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { IconStudio } from '@/components/CraftIcons'
 import RequireAuth from '@/components/RequireAuth'
 import { extractDominantColor } from '@/lib/colorExtract'
 import { useLanguage } from '@/lib/LanguageProvider'
@@ -92,7 +93,7 @@ function StudioPageInner() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
-        <span aria-hidden="true" style={{ fontSize: 26, lineHeight: 1.15 }}>📸</span>
+        <span aria-hidden="true" style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(196,85,45,0.1)', color: 'var(--ks-clay)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconStudio size={22} /></span>
         <div>
           <h1 style={pageTitleStyle}>{t('studio.title')}</h1>
           <p style={pageSubtitleStyle}>{t('studio.subtitle')}</p>
