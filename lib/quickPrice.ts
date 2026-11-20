@@ -6,6 +6,7 @@
 
 import { calculateFairPrice } from './fairPrice'
 import { getTranslations } from './translations'
+import { wordsToDigits } from './numberWords'
 
 export type QuickPriceResult = {
   heard: string
@@ -41,7 +42,8 @@ const endsWithAny = (s: string, words: string[]) => words.some((w) => s.endsWith
 
 export function parsePriceQuestion(text: string): { materialCostInr: number; hoursOfWork: number } | null {
   if (!text || RATE_WORDS.test(text)) return null
-  const normal = westernDigits(text).toLowerCase().replace(/(\d),(?=\d)/g, '$1')
+  // Spoken questions arrive with amounts as words ("పదిహేను వందలు").
+  const normal = wordsToDigits(westernDigits(text)).toLowerCase().replace(/(\d),(?=\d)/g, '$1')
   // English stems only at the start of a word ("thread" has "hr" in it).
   const hourPattern = new RegExp(HOUR_WORDS.map((w) => (/^[a-z]/.test(w) ? `(?<![a-z])${w}` : w)).join('|'), 'g')
   const hourMentions = normal.match(hourPattern)?.length ?? 0
