@@ -13,6 +13,8 @@ describe('wordsToDigits', () => {
     ['two thousand and fifty', '2050'],
     ['twenty hours', '20 hours'],
     ['पंद्रह सौ रुपये', '1500 रुपये'],
+    // Whisper's spelling of सौ in a live test.
+    ['पंद्रह सो रुपे', '1500 रुपे'],
     ['एक हज़ार पाँच सौ', '1500'],
     ['डेढ़ हजार रुपये', '1500 रुपये'],
     ['ढाई सौ', '250'],
@@ -46,6 +48,8 @@ describe('spoken price questions', () => {
   it.each([
     ['Materials cost fifteen hundred rupees and it took twenty hours. What price?', 1500, 20],
     ['सामान पंद्रह सौ रुपये का है और बीस घंटे लगे। कितनी कीमत रखूं?', 1500, 20],
+    // Whisper's real output for the Hindi question.
+    ['सामान पंद्रह सो रुपे का है और बीस घंटे लगे। कितनी कीमत रखूं।', 1500, 20],
     // Whisper's real output for a Telugu question, misspelling included.
     ['నా చీరకు మిటీరీయల్ పదిహేను ఒందలు రూపాయలు ఇరవై గంటల పాని యంత ధార పేట్టాలి ?', 1500, 20],
     ['பொருட்களுக்கு ஆயிரத்து ஐநூறு ரூபாய், இருபது மணி நேர வேலை', 1500, 20],
