@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
+import { gemmaText, isGeminiConfigured } from '@/lib/gemini'
 import { NextRequest, NextResponse } from 'next/server'
 import { readJsonObject } from '@/lib/readJson'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
@@ -36,6 +37,15 @@ function stripEmDash(text: string): string {
 }
 
 async function callAI(system: string, user: string): Promise<string | null> {
+  // Bulk translation is the high-volume, low-stakes job Gemma is for; it
+  // falls back to Gemini, then Claude, then Groq.
+  if (isGeminiConfigured()) {
+    try {
+      return (await gemmaText({ system, prompt: user, maxTokens: 6144 })).text
+    } catch (err) {
+      console.error('blog-translate: Gemma and Gemini failed, falling back to Claude:', err)
+    }
+  }
   // 6144, not the old 3072 — posts now run 1200-1800 words plus an FAQ
   // section, which was getting truncated mid-JSON under the old ceiling.
   for (let attempt = 1; attempt <= 2; attempt++) {

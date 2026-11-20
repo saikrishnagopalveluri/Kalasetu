@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
+import { geminiText, isGeminiConfigured } from '@/lib/gemini'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { BRAND } from '@/lib/brand'
@@ -34,6 +35,14 @@ async function extractWithAI(pageText: string): Promise<{
   title: string; description: string; type: string; deadline: string | null; relevant: boolean
 } | null> {
   const userMessage = `Webpage text:\n\n${pageText.slice(0, 6000)}`
+  if (isGeminiConfigured()) {
+    try {
+      const { text } = await geminiText({ system: EXTRACTION_SYSTEM_PROMPT, prompt: userMessage, maxTokens: 1024, json: true })
+      return JSON.parse(text.replace(/^```json\s*|```\s*$/g, '').trim())
+    } catch (geminiError) {
+      console.error('Gemini extraction failed, falling back to Claude:', geminiError)
+    }
+  }
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-5',

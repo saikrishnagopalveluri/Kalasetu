@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
+import { geminiText, gemmaText, isGeminiConfigured } from '@/lib/gemini'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { LANGUAGES } from '@/lib/languages'
@@ -125,6 +126,16 @@ function sleep(ms: number) {
 // limit, and the caller below runs translations in small batches instead
 // of all at once — see the batched loop further down.
 async function callAI(system: string, user: string, label: string): Promise<string | null> {
+  // Gemini writes the article; the bulk translations use Gemma (which
+  // itself falls back to Gemini). Claude and Groq stay as fallbacks.
+  if (isGeminiConfigured()) {
+    try {
+      const generate = label === 'en-content' ? geminiText : gemmaText
+      return (await generate({ system, prompt: user, maxTokens: 6144 })).text
+    } catch (err) {
+      console.error(`[daily-blog] ${label}: Gemini failed, falling back to Claude:`, err instanceof Error ? err.message : err)
+    }
+  }
   // 6144 tokens rather than the old 3072 — a 1200-1800 word article plus its
   // FAQ section runs well past the old ceiling and was getting silently
   // truncated mid-JSON.

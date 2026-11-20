@@ -1,3 +1,5 @@
+import { geminiImage } from './gemini'
+
 // Multi-provider image generation with automatic fallback. Every provider
 // below has a free tier (see docs/image-api-setup-guide for signup steps).
 // generateImage() tries them in order and moves to the next one on ANY
@@ -6,9 +8,9 @@
 
 export type GenerateImageOptions = {
   prompt: string
-  // data:image/...;base64,... — only Hugging Face currently uses this for
-  // image-to-image. Other providers ignore it and generate from the prompt
-  // alone rather than failing outright.
+  // data:image/...;base64,... — Gemini (Nano Banana) and Hugging Face use
+  // this as the reference photo. Other providers ignore it and generate
+  // from the prompt alone rather than failing outright.
   refImageDataUrl?: string
 }
 
@@ -189,7 +191,16 @@ async function generateWithPollinations({ prompt }: GenerateImageOptions): Promi
   return { imageDataUrl: `data:image/png;base64,${Buffer.from(buf).toString('base64')}`, provider: 'pollinations' }
 }
 
+// ─── Google Nano Banana (Gemini image) ──────────────────────────────────
+// Primary. Unlike the providers below, it edits the artisan's real photo
+// and keeps the product itself unchanged, which matters for handmade goods.
+async function generateWithGemini(opts: GenerateImageOptions): Promise<GenerateImageResult> {
+  if (!process.env.GEMINI_API_KEY) throw new ProviderError('not configured', 503)
+  return geminiImage(opts)
+}
+
 const PROVIDERS: { name: string; run: (opts: GenerateImageOptions) => Promise<GenerateImageResult> }[] = [
+  { name: 'gemini', run: generateWithGemini },
   { name: 'huggingface', run: generateWithHuggingFace },
   { name: 'cloudflare', run: generateWithCloudflare },
   { name: 'pixazo', run: generateWithPixazo },

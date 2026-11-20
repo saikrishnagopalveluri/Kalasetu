@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
+import { geminiText, isGeminiConfigured } from '@/lib/gemini'
 import { NextRequest, NextResponse } from 'next/server'
 import { readJsonObject } from '@/lib/readJson'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
@@ -22,6 +23,13 @@ function sleep(ms: number) {
 }
 
 async function callAI(system: string, user: string): Promise<string | null> {
+  if (isGeminiConfigured()) {
+    try {
+      return (await geminiText({ system, prompt: user, maxTokens: 3072 })).text
+    } catch (err) {
+      console.error('story-translate: Gemini failed, falling back to Claude:', err)
+    }
+  }
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const res = await anthropic.messages.create({

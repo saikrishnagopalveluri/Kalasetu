@@ -16,7 +16,7 @@ The assistant adapts to who the user is and what they are doing, rather than off
 - **Task-aware AI.** `/api/ai` takes a `mode` (`description`, `craft_story`, `caption`, `pricing`, `whatsapp`) and switches the system prompt to match. A pricing question always factors in labour time; a WhatsApp message stays 2-4 lines; a craft story is told not to invent biographical facts.
 - **Gated publishing.** A community story is scored on seven dimensions by AI on the server. It is published only if the overall score is 8 or more; otherwise the artisan gets one specific suggestion to improve it. The browser never supplies a score.
 - **Progress that responds to real actions.** Profile completeness, badges, and the Saathi (mentor) referral reward each move forward only when the server confirms the underlying event happened (a saved profile, a first product, a published story).
-- **Graceful degradation.** Text AI falls back from Claude to Groq. Image generation walks a chain of five providers. If everything fails, the user gets a plain "try again shortly" message, never a stack trace.
+- **Graceful degradation.** Google Gemini is the primary model for every AI feature. Text falls back from Gemini to Claude to Groq. Image generation starts with Nano Banana and then walks a chain of five more providers. If everything fails, the user gets a plain "try again shortly" message, never a stack trace.
 
 ## How it works
 
@@ -28,6 +28,29 @@ The assistant adapts to who the user is and what they are doing, rather than off
 6. **Saathi:** an established artisan refers a newcomer and is rewarded once the newcomer has both completed a profile and added a first product.
 
 Every API route that spends money (AI, images, payments) checks the Supabase session on the server, is rate limited per user, validates its input, and returns generic error messages.
+
+## Google AI integration
+
+All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), which calls the Gemini API with a single key. Each feature uses Google first and keeps the older providers only as automatic fallbacks.
+
+| Feature | Google model | Where | Fallback |
+|---|---|---|---|
+| AI Photoshoot | **Nano Banana** (`gemini-2.5-flash-image`) edits the artisan's real phone photo into a studio, heritage or festival scene and is told to keep the product itself unchanged | `lib/imageProviders.ts`, `/api/photoshoot` | Hugging Face, Cloudflare, Pixazo, Stability, Pollinations |
+| Design Studio images | **Nano Banana** | `/api/design-image` | same chain |
+| Listings, craft story, captions, WhatsApp and Facebook posts, B2B catalogue entries | **Gemini** (`gemini-2.5-flash`), multimodal, so a product photo can be sent with the request | `/api/ai` | Claude, then Groq |
+| Pricing Assistant and Business Coach | **Gemini**, answering in the artisan's chosen language | `/api/ai` (`pricing`, `coach` modes) | Claude, then Groq |
+| Design inspiration | **Gemini** with JSON output | `/api/ai` (`design_inspiration`) | Claude, then Groq |
+| Story quality gate (7 scores) | **Gemini** with JSON output, validated on the server before a story can publish | `lib/storyEvaluator.ts` | Claude, then Groq |
+| Government Scheme Navigator | **Gemini** with JSON output reads official scheme pages and extracts title, type and deadline for admin review | `/api/admin/scrape-schemes`, scheme cron | Claude, then Groq |
+| Story translation | **Gemini** | `/api/story-translate` | Claude, then Groq |
+| Bulk blog translation into 22 languages | **Gemma** (`gemma-3-27b-it`), the low-cost model for high-volume work | `/api/blog-translate`, daily blog cron | Gemini, Claude, Groq |
+
+How the layer works:
+
+- **One key, three model families.** Gemini, Nano Banana and Gemma all run through the same Gemini API key (`GEMINI_API_KEY`). Model ids can be changed from environment variables (`GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL`) without a code change.
+- **Structured output.** Features that need data, not prose (story scores, scheme extraction, design ideas), ask Gemini for JSON, and the server validates it before using it. An invalid answer falls through to the next provider instead of failing the artisan.
+- **Fails safe.** Every call has a timeout. If Gemini is unavailable, rate limited or not configured, the feature silently uses the fallback provider. Gemini's own error text is logged on the server and never sent to the browser.
+- **Tested.** `tests/gemini.test.ts` checks the request sent to Google (system prompt, chat history, image data, JSON mode, model choice), the Nano Banana "keep the product unchanged" instruction, Gemma's fallback to Gemini, and that `/api/ai` and the story evaluator use Gemini first and fall back only when it fails.
 
 ## Assumptions
 
@@ -59,8 +82,8 @@ Adding a new custom domain to either brand: `npx vercel domains add <domain>` wh
 - **Framework:** Next.js 16 (App Router)
 - **Database & auth:** Supabase (PostgreSQL, Row Level Security on every table)
 - **Hosting:** Vercel, including scheduled cron jobs
-- **AI text:** Anthropic Claude, with automatic fallback to Groq
-- **AI images:** Hugging Face, Cloudflare Workers AI, Pixazo, Stability AI, and Pollinations, tried in order with automatic fallback
+- **AI text:** Google Gemini (primary) and Gemma for bulk translation, with automatic fallback to Anthropic Claude and then Groq
+- **AI images:** Google Nano Banana (primary), then Hugging Face, Cloudflare Workers AI, Pixazo, Stability AI, and Pollinations, tried in order with automatic fallback
 - **Payments:** Razorpay
 - **Tests:** Vitest
 
@@ -82,8 +105,10 @@ Set these in `.env.local` for local development, and in the Vercel project setti
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (safe for the browser) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only key that bypasses Row Level Security. Never expose to the client. |
-| `ANTHROPIC_API_KEY` | Primary AI text provider |
-| `GROQ_API_KEY` | Fallback AI text provider |
+| `GEMINI_API_KEY` | Primary AI provider: Gemini, Nano Banana and Gemma (free key from Google AI Studio) |
+| `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL` | Optional model overrides. Defaults: `gemini-2.5-flash`, `gemini-2.5-flash-image`, `gemma-3-27b-it` |
+| `ANTHROPIC_API_KEY` | First fallback AI text provider |
+| `GROQ_API_KEY` | Second fallback AI text provider |
 | `HF_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `PIXAZO_API_KEY`, `STABILITY_API_KEY`, `POLLINATIONS_API_TOKEN` | Image generation providers (fallback chain; only configured providers are used) |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Payments |
 | `CRON_SECRET` | Bearer token required by all cron endpoints (the scheduled one and the two directly-callable ones) |
@@ -107,10 +132,11 @@ Vitest suites in `tests/` cover:
 
 - **API routes:** auth, rate limiting, input validation, provider failure and success paths for `/api/ai`, `/api/photoshoot`, `/api/design-image`, `/api/story-evaluate`, `/api/story-publish`, `/api/story-translate`, `/api/referral`, and both webhook hooks.
 - **Payments:** Razorpay order creation charges the server-side price; verification rejects forged or mismatched signatures, unpaid orders, and wrong amounts, and grants the tier recorded on Razorpay's order rather than the one the client claims.
+- **Google AI layer:** Gemini, Nano Banana and Gemma requests, structured output, timeouts, and Gemini-first behaviour with fallback on every AI route.
 - **Core logic:** pricing, KalaWallet balance and atomic redemption, profile completeness, story-score validation, rate limiting, request parsing, and the image-provider fallback chain.
 - **Platform:** cron endpoint auth, robots.txt and sitemap, branding, and translation-file integrity across all 23 languages.
 
-CI (`.github/workflows/tests.yml`) runs the suite and ESLint on every push and pull request.
+CI (`.github/workflows/tests.yml`) runs the suite, a TypeScript typecheck and ESLint on every push and pull request.
 
 ## Database migrations
 

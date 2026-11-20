@@ -6,6 +6,7 @@ import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { BRAND } from '@/lib/brand'
+import { geminiText, isGeminiConfigured } from '@/lib/gemini'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -149,7 +150,23 @@ Never present invented cultural or historical claims as fact. If unsure, put the
       systemPrompt += `\n\nRespond only in ${responseLanguage}, regardless of what language the input is in.`
     }
 
-    // Call Claude first
+    // Gemini is the primary model. Claude, then Groq, stay as automatic
+    // fallbacks so an outage or quota limit never reaches the artisan.
+    if (isGeminiConfigured()) {
+      try {
+        const result = await geminiText({
+          system: systemPrompt,
+          messages,
+          maxTokens: 4096,
+          json: mode === 'design_inspiration',
+        })
+        return NextResponse.json({ text: stripEmDash(result.text), usage: result.usage, provider: 'gemini' })
+      } catch (geminiError) {
+        console.error('Gemini call failed, falling back to Claude:', geminiError)
+      }
+    }
+
+    // Fallback 1: Claude
     try {
       const response = await client.messages.create({
         model: 'claude-sonnet-5',

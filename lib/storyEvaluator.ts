@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import Groq from 'groq-sdk'
 import { languageName } from './languages'
 import { BRAND } from './brand'
+import { geminiText, isGeminiConfigured } from './gemini'
 
 // Server-only — shared by /api/story-evaluate (the live "Check with AI"
 // preview) and /api/story-publish (the authoritative, re-verified score a
@@ -72,6 +73,19 @@ export async function evaluateStory(title: string, content: string, language?: s
     ? `\n\nThis story is written in ${storyLanguage}.`
     : ''
   const userMessage = `Title: ${title}\n\n${content}`
+
+  // Gemini first. A response that fails validation also falls through
+  // to Claude rather than failing the artisan's publish.
+  if (isGeminiConfigured()) {
+    try {
+      const { text } = await geminiText({ system: SYSTEM_PROMPT + langNote, prompt: userMessage, maxTokens: 1024, json: true })
+      const scores = parseScores(text)
+      if (scores) return scores
+      console.error('storyEvaluator: Gemini returned an invalid score object, falling back to Claude')
+    } catch (geminiError) {
+      console.error('storyEvaluator: Gemini failed, falling back to Claude:', geminiError)
+    }
+  }
 
   let raw: string | null = null
   try {

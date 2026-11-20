@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const ORIGINAL_ENV = { ...process.env }
 
 function clearProviderEnv() {
+  delete process.env.GEMINI_API_KEY
   delete process.env.HF_API_KEY
   delete process.env.CLOUDFLARE_ACCOUNT_ID
   delete process.env.CLOUDFLARE_API_TOKEN
@@ -87,7 +88,7 @@ describe('generateImage: fallback ordering', () => {
     } catch (err) {
       expect(err).toBeInstanceOf(AllProvidersFailedError)
       const attempts = (err as InstanceType<typeof AllProvidersFailedError>).attempts
-      expect(attempts.map((a) => a.provider)).toEqual(['huggingface', 'cloudflare', 'pixazo', 'stability', 'pollinations'])
+      expect(attempts.map((a) => a.provider)).toEqual(['gemini', 'huggingface', 'cloudflare', 'pixazo', 'stability', 'pollinations'])
     }
   })
 })

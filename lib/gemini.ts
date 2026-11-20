@@ -1,0 +1,217 @@
+// Google AI layer: Gemini (text + multimodal), Nano Banana (image editing)
+// and Gemma (cheap bulk text), all through the Gemini API with one key.
+//
+// Server-only. Every call site uses Gemini FIRST and keeps its older
+// providers (Claude, then Groq; or the image provider chain) as automatic
+// fallbacks, so a Gemini outage or quota limit never reaches the artisan.
+//
+// Plain fetch against the REST API, no SDK: one less dependency, and the
+// tests can stub fetch directly.
+
+const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+
+// Model ids are env-overridable so a newer model can be switched in from
+// Vercel settings without a code change.
+export const GEMINI_MODELS = {
+  get text() {
+    return process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+  },
+  get image() {
+    return process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image'
+  },
+  get gemma() {
+    return process.env.GEMMA_MODEL || 'gemma-3-27b-it'
+  },
+}
+
+const TEXT_TIMEOUT_MS = 60_000
+const IMAGE_TIMEOUT_MS = 90_000
+
+// Thinking models spend part of maxOutputTokens on reasoning before they
+// write the answer, so a tight cap can come back empty. Extra headroom
+// keeps the caller's intended answer length intact.
+const THINKING_HEADROOM = 4096
+
+export function isGeminiConfigured(): boolean {
+  return Boolean(process.env.GEMINI_API_KEY)
+}
+
+export class GeminiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message)
+  }
+}
+
+type InlineData = { mimeType: string; data: string }
+type Part = { text: string } | { inlineData: InlineData }
+type Content = { role: 'user' | 'model'; parts: Part[] }
+
+export type ChatMessage = { role: string; content: unknown }
+
+export type GeminiTextOptions = {
+  system?: string
+  // Either a single user prompt or a chat history in the
+  // { role: 'user' | 'assistant', content } shape the app already uses.
+  prompt?: string
+  messages?: ChatMessage[]
+  maxTokens?: number
+  json?: boolean
+  model?: string
+}
+
+export type GeminiTextResult = {
+  text: string
+  usage: { input_tokens: number; output_tokens: number }
+  model: string
+}
+
+const DATA_URL_RE = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
+
+export function dataUrlToInlineData(dataUrl: string): InlineData | null {
+  const match = typeof dataUrl === 'string' ? dataUrl.match(DATA_URL_RE) : null
+  return match ? { mimeType: match[1], data: match[2] } : null
+}
+
+// Converts the app's message content (a plain string, or Anthropic-style
+// content blocks) into Gemini parts. Unknown block types are dropped
+// rather than sent through as junk.
+function toParts(content: unknown): Part[] {
+  if (typeof content === 'string') return content ? [{ text: content }] : []
+  if (!Array.isArray(content)) return []
+  const parts: Part[] = []
+  for (const block of content) {
+    if (!block || typeof block !== 'object') continue
+    const b = block as Record<string, unknown>
+    if (b.type === 'text' && typeof b.text === 'string') {
+      parts.push({ text: b.text })
+    } else if (b.type === 'image' && b.source && typeof b.source === 'object') {
+      const src = b.source as Record<string, unknown>
+      if (typeof src.media_type === 'string' && typeof src.data === 'string') {
+        parts.push({ inlineData: { mimeType: src.media_type, data: src.data } })
+      }
+    }
+  }
+  return parts
+}
+
+export function toGeminiContents(messages: ChatMessage[]): Content[] {
+  const contents: Content[] = []
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue
+    const parts = toParts(message.content)
+    if (parts.length === 0) continue
+    contents.push({ role: message.role === 'assistant' ? 'model' : 'user', parts })
+  }
+  return contents
+}
+
+async function callGenerateContent(model: string, body: unknown, timeoutMs: number) {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new GeminiError('Gemini is not configured', 503)
+
+  const res = await fetch(`${API_BASE}/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+  if (!res.ok) {
+    // The API's error body never leaves the server: it is only logged by
+    // the caller, never returned to the client.
+    throw new GeminiError(`Gemini ${model} HTTP ${res.status}: ${(await res.text()).slice(0, 500)}`, res.status)
+  }
+  return res.json()
+}
+
+type GeminiResponse = {
+  candidates?: { content?: { parts?: Record<string, unknown>[] }; finishReason?: string }[]
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }
+  promptFeedback?: { blockReason?: string }
+}
+
+function responseParts(json: GeminiResponse): Record<string, unknown>[] {
+  if (json.promptFeedback?.blockReason) {
+    throw new GeminiError(`Gemini blocked the prompt: ${json.promptFeedback.blockReason}`, 422)
+  }
+  return json.candidates?.[0]?.content?.parts ?? []
+}
+
+export async function geminiText(opts: GeminiTextOptions): Promise<GeminiTextResult> {
+  const model = opts.model ?? GEMINI_MODELS.text
+  const isGemma = model.startsWith('gemma')
+  const contents = opts.messages ? toGeminiContents(opts.messages) : []
+  if (opts.prompt) contents.push({ role: 'user', parts: [{ text: opts.prompt }] })
+  if (contents.length === 0) throw new GeminiError('No content to send', 400)
+
+  const body: Record<string, unknown> = { contents }
+  if (opts.system) {
+    if (isGemma) {
+      // Gemma on the Gemini API rejects systemInstruction, so the
+      // instructions go in front of the first user turn instead.
+      const first = contents.find((c) => c.role === 'user')
+      first?.parts.unshift({ text: `${opts.system}\n\n` })
+    } else {
+      body.systemInstruction = { parts: [{ text: opts.system }] }
+    }
+  }
+  const generationConfig: Record<string, unknown> = {
+    maxOutputTokens: (opts.maxTokens ?? 2048) + (isGemma ? 0 : THINKING_HEADROOM),
+  }
+  if (opts.json && !isGemma) generationConfig.responseMimeType = 'application/json'
+  body.generationConfig = generationConfig
+
+  const json = (await callGenerateContent(model, body, TEXT_TIMEOUT_MS)) as GeminiResponse
+  const text = responseParts(json)
+    .filter((p) => typeof p.text === 'string' && !p.thought)
+    .map((p) => p.text as string)
+    .join('')
+    .trim()
+  if (!text) {
+    throw new GeminiError(`Gemini ${model} returned no text (finish: ${json.candidates?.[0]?.finishReason ?? 'unknown'})`, 502)
+  }
+  return {
+    text,
+    model,
+    usage: {
+      input_tokens: json.usageMetadata?.promptTokenCount ?? 0,
+      output_tokens: json.usageMetadata?.candidatesTokenCount ?? 0,
+    },
+  }
+}
+
+// Gemma: the cheap model for high-volume, low-stakes text (caption
+// variations, translation clean-up). Falls back to the main Gemini model
+// if Gemma is unavailable.
+export async function gemmaText(opts: Omit<GeminiTextOptions, 'model'>): Promise<GeminiTextResult> {
+  try {
+    return await geminiText({ ...opts, model: GEMINI_MODELS.gemma })
+  } catch (err) {
+    console.error('Gemma failed, using Gemini instead:', err instanceof Error ? err.message : err)
+    return geminiText(opts)
+  }
+}
+
+// Nano Banana: edits the artisan's real photo into a new scene. With a
+// reference photo it keeps the actual product unchanged; without one it
+// generates from the prompt alone.
+export async function geminiImage({ prompt, refImageDataUrl }: { prompt: string; refImageDataUrl?: string }): Promise<{ imageDataUrl: string; provider: string }> {
+  const ref = refImageDataUrl ? dataUrlToInlineData(refImageDataUrl) : null
+  const instruction = ref
+    ? `Edit this photo of a handmade product. Keep the product itself exactly as it is: same shape, colours, patterns, proportions and craft details. Do not add, remove or redesign anything on the product. Only change the setting, background and lighting to: ${prompt}`
+    : prompt
+  const parts: Part[] = ref ? [{ inlineData: ref }, { text: instruction }] : [{ text: instruction }]
+
+  const json = (await callGenerateContent(
+    GEMINI_MODELS.image,
+    { contents: [{ role: 'user', parts }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } },
+    IMAGE_TIMEOUT_MS
+  )) as GeminiResponse
+
+  for (const part of responseParts(json)) {
+    const inline = (part.inlineData ?? part.inline_data) as { mimeType?: string; mime_type?: string; data?: string } | undefined
+    if (inline?.data) {
+      return { imageDataUrl: `data:${inline.mimeType ?? inline.mime_type ?? 'image/png'};base64,${inline.data}`, provider: 'gemini' }
+    }
+  }
+  throw new GeminiError('Nano Banana returned no image', 502)
+}
