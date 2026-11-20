@@ -9,7 +9,7 @@ The same codebase also runs a second brand, Hastkatha; see "Multi-brand deployme
 ## For judges: try it in 3 minutes
 
 1. **Talk to Saathi** (home screen, or `/voice`). Tap the mic and ask, in any Indian language: "My saree's materials cost 1500 rupees and took 20 hours. What should I charge?" Gemini hears the audio, calls the pricing tool and answers aloud. Then try "Are there schemes for weavers?" and "Open the photoshoot".
-2. **Photoshoot** (`/studio`). Upload a phone photo of a product. Gemini studies the photo and art-directs the image so the result shows that product, not a generic one.
+2. **Photoshoot** (`/studio`). Upload a phone photo of a product. Gemini studies the photo and writes a precise brief for the image model, so the result shows that product rather than a generic one. (On this free-tier deployment the image itself comes from a free image model; with billing on, Nano Banana edits the real photo.)
 3. **Catalogue** (`/catalogue`). Pick a language such as Telugu: the headings and every product name and description come out in that language, ready to share on WhatsApp or download as PDF, PowerPoint or Word.
 4. Switch the language from the header: every screen is translated into all 23 of India's scheduled languages plus English.
 
@@ -22,13 +22,15 @@ flowchart LR
   G --> GT[Gemini 4 Hydrogen / 3.1 Flash-Lite / 3.8 Flash<br/>listings, pricing, coach, JSON scoring]
   G --> GA[Gemini audio + function calling<br/>Saathi Voice Agent]
   G --> GS[Gemini TTS<br/>spoken replies]
-  G --> GG[Gemini + Google Search grounding<br/>live schemes with sources]
-  G --> NB[Nano Banana 2<br/>photo editing]
+  G -.-> GG[Gemini + Google Search grounding<br/>live schemes with sources<br/><i>needs billing</i>]
+  G -.-> NB[Nano Banana 2<br/>photo editing<br/><i>needs billing</i>]
   G --> GM[Gemma 4<br/>bulk translation]
   GA --> T[Tools: fair price, schemes,<br/>my products, catalogue link, open screen]
   T --> DB[(Supabase Postgres<br/>Row Level Security)]
   API --> FB[Fallbacks: Claude, Groq,<br/>5 free image providers]
 ```
+
+Dotted lines are built and tested but switched off on this deployment, which runs on the free Gemini API tier (no image or Search-grounding quota); they turn on by themselves once billing is enabled on the API project. Everything else runs live today.
 
 Every AI call goes through one server-only module and has a fallback, so an outage or quota limit never reaches the artisan as an error. Tools the voice agent can call only read the signed-in artisan's own data or public listings; prices always come from a deterministic calculator, never from the model.
 
