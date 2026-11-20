@@ -24,7 +24,7 @@ describe('translations: full coverage', () => {
     })
   }
 
-  it('the Saathi Voice screen and login errors exist in every language', () => {
+  it('the Kala Mitra voice screen and login errors exist in every language', () => {
     for (const lang of TRANSLATED_LANGUAGES) {
       const dict = getTranslations(lang)
       for (const key of ['voice.title', 'voice.example1', 'voice.screen.photoshoot', 'auth.invalidCredentials', 'common.tooManyRequests'] as TranslationKey[]) {
@@ -40,10 +40,28 @@ describe('translations: full coverage', () => {
     expect(latinLetters / allLetters).toBeLessThan(0.15)
   })
 
-  it('non-English screens say "Saathi" in their own script', () => {
-    expect(getTranslations('te')['voice.bannerTitle']).toContain('సాథీ')
-    expect(getTranslations('hi')['voice.bannerTitle']).toContain('साथी')
-    expect(getTranslations('ur')['voice.title']).toContain('ساتھی')
+  it('non-English screens name the voice assistant "Kala Mitra" in their own script', () => {
+    expect(getTranslations('te')['voice.bannerTitle']).toContain('కళా మిత్ర')
+    expect(getTranslations('hi')['voice.bannerTitle']).toContain('कला मित्र')
+    expect(getTranslations('ur')['voice.title']).toContain('کلا مترا')
+  })
+
+  it('keeps "Saathi" for the referral program only, never for the voice assistant', () => {
+    const voiceKeys = ['voice.title', 'voice.subtitle', 'voice.thinking', 'voice.speaking', 'voice.saathi', 'voice.micDenied', 'voice.busy', 'voice.bannerTitle', 'voice.bannerDesc'] as TranslationKey[]
+    for (const lang of TRANSLATED_LANGUAGES) {
+      const dict = getTranslations(lang)
+      for (const key of voiceKeys) expect(dict[key], `${lang}.${key}`).not.toMatch(/Saathi|साथी|సాథీ|সাথী|ساتھی|ساٿي|சாத்தி|સાથી|ಸಾಥಿ|ସାଥୀ|ਸਾਥੀ|സാഥി|ᱥᱟᱛᱷᱤ/)
+    }
+    expect(getTranslations('en')['saathi.title']).toContain('Saathi')
+  })
+
+  it('explains the price breakdown with every number in every language', () => {
+    for (const lang of TRANSLATED_LANGUAGES) {
+      const s = getTranslations(lang)['voice.priceExplain']
+      for (const n of ['materials', 'hours', 'wage', 'labour', 'cost', 'margin', 'fair', 'minimum', 'online']) {
+        expect(s, `${lang} ${n}`).toContain(`{{${n}}}`)
+      }
+    }
   })
 })
 

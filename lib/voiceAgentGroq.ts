@@ -1,4 +1,4 @@
-// Groq fallback for the Saathi voice agent: used only when no Gemini model
+// Groq fallback for the Kala Mitra voice agent: used only when no Gemini model
 // answered in time. Same instructions, facts and tools as the Gemini
 // agent, so prices still come from the calculator and schemes from the
 // approved list. Spoken questions are transcribed with Groq's Whisper

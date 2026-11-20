@@ -266,8 +266,12 @@ export async function geminiImage({ prompt, refImageDataUrl }: { prompt: string;
 // models sometimes read the instruction aloud too (heard live on 20 Nov
 // 2026). The language is taken from the text itself. languageName is kept
 // in the signature so callers do not change.
+// Longest reply read aloud. A detailed answer in an Indian script can pass
+// 800 characters; 1,600 covers a full price breakdown.
+export const MAX_SPOKEN_CHARS = 1600
+
 export async function geminiSpeech({ text }: { text: string; languageName?: string }): Promise<{ audioDataUrl: string; model: string }> {
-  const spoken = text.trim().slice(0, 800)
+  const spoken = text.trim().slice(0, MAX_SPOKEN_CHARS)
   if (!spoken) throw new GeminiError('No text to speak', 400)
   const instruction = spoken
   let lastError: unknown

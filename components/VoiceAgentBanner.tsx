@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useLanguage } from '@/lib/LanguageProvider'
 
-// Home-screen entry point for Saathi Voice.
+// Home-screen entry point for the Kala Mitra voice assistant.
 
 export default function VoiceAgentBanner() {
   const { t } = useLanguage()

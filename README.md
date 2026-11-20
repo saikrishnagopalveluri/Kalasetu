@@ -8,7 +8,7 @@ The same codebase also runs a second brand, Hastkatha; see "Multi-brand deployme
 
 ## For judges: try it in 3 minutes
 
-1. **Talk to Saathi** (home screen, or `/voice`). Tap the mic and ask, in any Indian language: "My saree's materials cost 1500 rupees and took 20 hours. What should I charge?" Gemini hears the audio, calls the pricing tool and answers aloud. Then try "Are there schemes for weavers?" and "Open the photoshoot".
+1. **Talk to Kala Mitra** (home screen, or `/voice`). Tap the mic and ask, in any Indian language: "My saree's materials cost 1500 rupees and took 20 hours. What should I charge?" Gemini hears the audio, calls the pricing tool and answers aloud. Then try "Are there schemes for weavers?" and "Open the photoshoot".
 2. **Photoshoot** (`/studio`). Upload a phone photo of a product. Gemini studies the photo and writes a precise brief for the image model, so the result shows that product rather than a generic one. (On this free-tier deployment the image itself comes from a free image model; with billing on, Nano Banana edits the real photo.)
 3. **Catalogue** (`/catalogue`). Pick a language such as Telugu: the headings and every product name and description come out in that language, ready to share on WhatsApp or download as PDF, PowerPoint or Word.
 4. Switch the language from the header: every screen is translated into all 23 of India's scheduled languages plus English.
@@ -20,7 +20,7 @@ flowchart LR
   A[Artisan's phone<br/>Next.js PWA, 23 languages] -->|voice, photo, text| API[Next.js API routes on Vercel<br/>auth, rate limits, validation]
   API --> G[lib/gemini.ts<br/>one key, model fallback, timeouts]
   G --> GT[Gemini 4 Hydrogen / 3.1 Flash-Lite / 3.8 Flash<br/>listings, pricing, coach, JSON scoring]
-  G --> GA[Gemini audio + function calling<br/>Saathi Voice Agent]
+  G --> GA[Gemini audio + function calling<br/>Kala Mitra voice agent]
   G --> GS[Gemini TTS<br/>spoken replies]
   G -.-> GG[Gemini + Google Search grounding<br/>live schemes with sources<br/><i>needs billing</i>]
   G -.-> NB[Nano Banana 2<br/>photo editing<br/><i>needs billing</i>]
@@ -59,9 +59,9 @@ The assistant adapts to who the user is and what they are doing, rather than off
 
 Every API route that spends money (AI, images, payments) checks the Supabase session on the server, is rate limited per user, validates its input, and returns generic error messages.
 
-## Saathi Voice Agent (new for the Startup Buildathon)
+## Kala Mitra voice agent (new for the Startup Buildathon)
 
-Many artisans can't comfortably read or type, especially in English. **Saathi Voice** (`/voice`, linked from the home screen) lets them just talk, in any of the 23 languages, and have the app do the work.
+Many artisans can't comfortably read or type, especially in English. **Kala Mitra** (`/voice`, linked from the home screen) lets them just talk, in any of the 23 languages, and have the app do the work.
 
 1. **The artisan taps the mic and speaks.** The browser records the audio and re-encodes it as 16 kHz mono WAV ([`lib/wav.ts`](lib/wav.ts)), so every phone sends a format Gemini accepts.
 2. **Gemini listens to the audio directly.** There is no separate speech-to-text step: Gemini hears the question, writes down what it heard in the artisan's own script, and decides what to do.
@@ -104,7 +104,7 @@ All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), wh
 | Live scheme answers | **Gemini with Google Search grounding** answers "what's new for weavers in Telangana?" with links to its sources, inside the voice agent | `lib/gemini.ts` (`geminiGrounded`), `lib/voiceAgent.ts` | The admin-approved scheme list |
 | Government Scheme Navigator | **Gemini** with JSON output reads official scheme pages and extracts title, type and deadline for admin review | `/api/admin/scrape-schemes`, scheme cron | Claude, then Groq |
 | Story translation | **Gemini** | `/api/story-translate` | Claude, then Groq |
-| Saathi Voice Agent | **Gemini** audio understanding and function calling, plus **Gemini TTS** (`gemini-3.8-flash-tts`) for spoken replies | `/api/voice-agent`, `/api/speak` | Next Gemini model; the phone's own voice for speech |
+| Kala Mitra voice agent | **Gemini** audio understanding and function calling, plus **Gemini TTS** (`gemini-3.8-flash-tts`) for spoken replies | `/api/voice-agent`, `/api/speak` | Next Gemini model; the phone's own voice for speech |
 | Bulk blog translation into 22 languages | **Gemma 4** (`gemma-4-26b-a4b-it`), the low-cost model for high-volume work | `/api/blog-translate`, daily blog cron | Gemini, Claude, Groq |
 
 How the layer works:
@@ -201,7 +201,7 @@ Vitest suites in `tests/` cover:
 
 - **API routes:** auth, rate limiting, input validation, provider failure and success paths for `/api/ai`, `/api/photoshoot`, `/api/design-image`, `/api/story-evaluate`, `/api/story-publish`, `/api/story-translate`, `/api/referral`, and both webhook hooks.
 - **Payments:** Razorpay order creation charges the server-side price; verification rejects forged or mismatched signatures, unpaid orders, and wrong amounts, and grants the tier recorded on Razorpay's order rather than the one the client claims.
-- **Saathi Voice Agent:** fair-price maths, WAV encoding, the Gemini function-calling loop and its tools, model fallback, and the `/api/voice-agent` and `/api/speak` routes.
+- **Kala Mitra voice agent:** fair-price maths, WAV encoding, the Gemini function-calling loop and its tools, model fallback, and the `/api/voice-agent` and `/api/speak` routes.
 - **Google AI layer:** Gemini, Nano Banana and Gemma requests, structured output, timeouts, and Gemini-first behaviour with fallback on every AI route.
 - **Core logic:** pricing, KalaWallet balance and atomic redemption, profile completeness, story-score validation, rate limiting, request parsing, and the image-provider fallback chain.
 - **Platform:** cron endpoint auth, robots.txt and sitemap, branding, and translation-file integrity across all 23 languages.

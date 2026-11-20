@@ -12,6 +12,7 @@ import HeaderTagline from '@/components/HeaderTagline'
 import { AskAIProvider } from '@/lib/AskAIProvider'
 import AskAIModal from '@/components/AskAIModal'
 import MainContainer from '@/components/MainContainer'
+import SkipLink from '@/components/SkipLink'
 import PeacockMark from '@/components/PeacockMark'
 import { BRAND } from '@/lib/brand'
 
@@ -69,6 +70,7 @@ export default function RootLayout({
       <AuthProvider>
       <LanguageProvider>
       <AskAIProvider>
+      <SkipLink />
       <LanguageGate />
       <AskAIModal />
 

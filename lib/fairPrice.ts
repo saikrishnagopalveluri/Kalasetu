@@ -59,7 +59,10 @@ export function calculateFairPrice(input: FairPriceInput): FairPriceResult {
     hourlyWage,
     marginPercent,
     fairPrice,
-    onlinePrice: roundUp10(fairPrice * (1 + ONLINE_FEE_PERCENT / 100)),
+    // The marketplace keeps its fee out of the listed price, so the listed
+    // price must be fair ÷ (1 − fee) for the artisan to still receive the
+    // fair price (× 1.15 would leave them about 2% short).
+    onlinePrice: roundUp10(fairPrice / (1 - ONLINE_FEE_PERCENT / 100)),
     // Below this the artisan is not even paid for their time and materials.
     minimumPrice: roundUp10(totalCost),
     profit: fairPrice - totalCost,

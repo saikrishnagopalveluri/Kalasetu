@@ -531,7 +531,8 @@ function RecentRowCard({
       {preset && (
         <span style={{
           background: 'rgba(161,61,46,0.12)',
-          color: 'var(--ks-clay)',
+          // Darker than --ks-clay so the small tag text passes 4.5:1 contrast.
+          color: 'var(--ks-rust)',
           borderRadius: 20,
           padding: '2px 10px',
           fontSize: 11,

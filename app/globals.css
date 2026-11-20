@@ -740,3 +740,17 @@ html[dir="rtl"] .ks-tour-trigger {
     animation: none !important;
   }
 }
+/* "Skip to main content": off-screen until a keyboard user tabs to it. */
+.ks-skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ks-turmeric);
+  color: var(--ks-earth);
+  font-weight: 700;
+  text-decoration: none;
+}
+.ks-skip-link:focus { top: 12px; }

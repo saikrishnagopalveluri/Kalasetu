@@ -1,4 +1,4 @@
-// Accuracy check for the Saathi voice agent, against the real Gemini API.
+// Accuracy check for the Kala Mitra voice agent, against the real Gemini API.
 //
 //   npx tsx scripts/evalVoiceAgent.mts
 //

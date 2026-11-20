@@ -66,14 +66,26 @@ export function parsePriceQuestion(text: string): { materialCostInr: number; hou
   return { materialCostInr: material, hoursOfWork: hours }
 }
 
-const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`
+const amount = (n: number) => n.toLocaleString('en-IN')
 
 export function quickPriceAnswer(text: string, language: string | undefined): QuickPriceResult | null {
   const parsed = parsePriceQuestion(text)
   if (!parsed) return null
   const result = calculateFairPrice(parsed)
-  // The card labels are already translated into every language.
-  const t = getTranslations(language ?? 'en')
-  const reply = `${t['voice.fairPrice']}: ${rupees(result.fairPrice)}. ${t['voice.minimum']}: ${rupees(result.minimumPrice)}. ${t['voice.online']}: ${rupees(result.onlinePrice)}.`
+  // The whole breakdown in the artisan's language: how the cost adds up,
+  // the profit, the fair price, the lowest safe price and the online price.
+  const values: Record<string, string> = {
+    materials: amount(result.materials),
+    hours: amount(parsed.hoursOfWork),
+    wage: amount(result.hourlyWage),
+    labour: amount(result.labour),
+    cost: amount(result.totalCost),
+    margin: String(result.marginPercent),
+    fair: amount(result.fairPrice),
+    minimum: amount(result.minimumPrice),
+    online: amount(result.onlinePrice),
+  }
+  const template = getTranslations(language ?? 'en')['voice.priceExplain']
+  const reply = template.replace(/\{\{(\w+)\}\}/g, (whole, name: string) => values[name] ?? whole)
   return { heard: text, reply, actions: [{ type: 'price', result }], toolsUsed: ['suggest_fair_price'], model: 'kalasetu/price-calculator' }
 }

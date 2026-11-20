@@ -63,7 +63,10 @@ describe('calculateFairPrice', () => {
   it('matches the pricing calculator: ₹200/hour and a 30% margin on the selling price', async () => {
     const { calculateFairPrice } = await import('@/lib/fairPrice')
     const r = calculateFairPrice({ materialCostInr: 1500, hoursOfWork: 20 })
-    expect(r).toMatchObject({ materials: 1500, labour: 4000, totalCost: 5500, fairPrice: 7860, minimumPrice: 5500, onlinePrice: 9040 })
+    // Online: after a 15% marketplace fee the artisan must still keep the
+    // fair price, so 7,860 / 0.85 = 9,247 → 9,250 (not 7,860 × 1.15).
+    expect(r).toMatchObject({ materials: 1500, labour: 4000, totalCost: 5500, fairPrice: 7860, minimumPrice: 5500, onlinePrice: 9250 })
+    expect(r.onlinePrice * 0.85).toBeGreaterThanOrEqual(r.fairPrice)
     expect(r.profit).toBe(7860 - 5500)
   })
 
@@ -544,10 +547,18 @@ describe('POST /api/speak', () => {
     expect(modelOf(fetchMock, 1)).toBe('gemini-3.8-flash-lite-tts')
   })
 
+  it('speaks a detailed reply longer than 800 characters in full', async () => {
+    const fetchMock = stubFetch(reply([{ inlineData: { mimeType: 'audio/wav', data: 'UklGRg==' } }]))
+    const { POST } = await import('@/app/api/speak/route')
+    const long = 'మీ సామగ్రి ఖర్చు ₹1,500. '.repeat(50).slice(0, 1200)
+    expect((await POST(request({ text: long, language: 'te' }))).status).toBe(200)
+    expect(bodyOf(fetchMock, 0).contents[0].parts[0].text).toBe(long.trim())
+  })
+
   it('validates input and auth, and fails with a generic 503 the page can fall back from', async () => {
     const { POST } = await import('@/app/api/speak/route')
     expect((await POST(request({ text: '' }))).status).toBe(400)
-    expect((await POST(request({ text: 'x'.repeat(801) }))).status).toBe(400)
+    expect((await POST(request({ text: 'x'.repeat(1601) }))).status).toBe(400)
     stubFetch(httpError(429), httpError(429))
     const failed = await POST(request({ text: 'hi' }))
     expect(failed.status).toBe(503)

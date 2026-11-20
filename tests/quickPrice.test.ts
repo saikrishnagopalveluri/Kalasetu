@@ -42,14 +42,20 @@ describe('quickPriceAnswer', () => {
     expect(r!.actions[0]).toMatchObject({ type: 'price', result: { fairPrice: 7860, minimumPrice: 5500 } })
     expect(r!.toolsUsed).toEqual(['suggest_fair_price'])
     expect(r!.model).toBe('kalasetu/price-calculator')
-    expect(r!.reply).toContain('సరైన ధర')
-    expect(r!.reply).toContain('₹7,860')
-    expect(r!.reply).toContain('₹5,500')
+    // Every number of the breakdown, in Telugu words around them.
+    for (const amount of ['₹1,500', '₹200', '₹4,000', '₹5,500', '₹7,860', '₹9,250']) expect(r!.reply).toContain(amount)
+    expect(r!.reply).toMatch(/[ఀ-౿]/)
+    expect(r!.reply).not.toMatch(/\{\{/)
   })
 
-  it('answers in English when no language is chosen', () => {
+  it('explains the whole breakdown in English when no language is chosen', () => {
     const r = quickPriceAnswer('Materials cost 1500 rupees and it took 20 hours.', undefined)
-    expect(r!.reply).toBe('Fair price: ₹7,860. Do not sell below: ₹5,500. Online price (covers fees): ₹9,040.')
+    expect(r!.reply).toBe(
+      'Your materials cost ₹1,500, and 20 hours of work at ₹200 an hour is ₹4,000, so your total cost is ₹5,500. ' +
+      'With a 30% profit on top, a fair price is ₹7,860. ' +
+      'Never sell below ₹5,500, because that only covers your materials and your time. ' +
+      'If you sell online, ask ₹9,250, so that after the platform fee you still keep the fair price.',
+    )
   })
 
   it('returns null for questions it cannot read', () => {

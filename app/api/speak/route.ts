@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
-import { geminiSpeech, isGeminiConfigured } from '@/lib/gemini'
+import { MAX_SPOKEN_CHARS, geminiSpeech, isGeminiConfigured } from '@/lib/gemini'
 import { languageName } from '@/lib/languages'
 
 export const maxDuration = 60
@@ -24,8 +24,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Speech unavailable' }, { status: 503 })
     }
     const { text, language } = await readJsonObject(request)
-    if (typeof text !== 'string' || !text.trim() || text.length > 800) {
-      return NextResponse.json({ error: 'Text is required (max 800 characters)' }, { status: 400 })
+    // Detailed replies in Indian scripts run past 800 characters; 1,600
+    // fits a full price breakdown with room to spare.
+    if (typeof text !== 'string' || !text.trim() || text.length > MAX_SPOKEN_CHARS) {
+      return NextResponse.json({ error: `Text is required (max ${MAX_SPOKEN_CHARS} characters)` }, { status: 400 })
     }
     const { audioDataUrl } = await geminiSpeech({ text, languageName: languageName(language) })
     return NextResponse.json({ audioDataUrl })
