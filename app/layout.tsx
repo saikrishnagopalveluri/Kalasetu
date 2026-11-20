@@ -75,7 +75,7 @@ export default function RootLayout({
       <AskAIModal />
 
         {/* ── Header ─────────────────────────────────────── */}
-        <header className="ks-night-sky ks-scallop" style={{
+        <header className="ks-night-sky ks-scallop-edge" style={{
           backgroundColor: 'var(--ks-earth)',
           ['--s' as string]: '6px',
           padding: 'calc(12px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 18px max(20px, env(safe-area-inset-left))',

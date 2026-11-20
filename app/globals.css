@@ -758,3 +758,18 @@ html[dir="rtl"] .ks-tour-trigger {
 /* Catalogue templates set their own colours (white titles on dark bands);
    the app-wide heading colour above must not override them. */
 .ks-catalogue h1, .ks-catalogue h2, .ks-catalogue h3, .ks-catalogue p { color: inherit; }
+
+/* Header scallop drawn inside the header's bottom edge, painting the gaps
+   between the curves in the page colour. Unlike .ks-scallop (a CSS mask),
+   this clips nothing, so pop-ups inside the header, such as the full-screen
+   language picker, still show. */
+.ks-scallop-edge::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--s, 12px);
+  background: radial-gradient(circle var(--s, 12px) at 50% 0, transparent 98%, var(--ks-paper) 101%) 0 0 / calc(2 * var(--s, 12px)) var(--s, 12px) repeat-x;
+  pointer-events: none;
+}
