@@ -91,17 +91,17 @@ export default function RootLayout({
           {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
-              width: 36,
+              width: 51,
               height: 36,
-              borderRadius: '50%',
-              background: 'var(--ks-paper)',
+              borderRadius: 9,
+              background: '#F9E9D6',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
               flexShrink: 0,
             }}>
-              <PeacockMark size={30} />
+              <PeacockMark size={36} />
             </div>
             <div>
               <div style={{

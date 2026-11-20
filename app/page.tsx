@@ -190,11 +190,11 @@ function HomePageContent() {
         <FeatherFlourish style={{ position: 'absolute', right: -12, bottom: -18, width: 150, height: 130 }} />
         <ProductTour />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, position: 'relative' }}>
-          <div style={{ position: 'relative', width: 46, height: 46, flexShrink: 0 }}>
+          <div style={{ position: 'relative', width: 65, height: 46, flexShrink: 0 }}>
             {/* A rangoli dot-ring — the small mark drawn at a threshold —
                 framing the peacock mark, echoed by the frieze/motif classes
                 already used elsewhere on this page. */}
-            <svg viewBox="0 0 46 46" style={{ position: 'absolute', inset: -5, width: 56, height: 56 }} aria-hidden="true">
+            <svg viewBox="0 0 46 46" preserveAspectRatio="none" style={{ position: 'absolute', top: -5, left: -5, width: 75, height: 56 }} aria-hidden="true">
               <g fill="rgba(212,160,23,0.55)">
                 <circle cx="23" cy="1.5" r="1.4" /><circle cx="34" cy="4.5" r="1.4" /><circle cx="42" cy="13" r="1.4" />
                 <circle cx="44.5" cy="24" r="1.4" /><circle cx="40" cy="35" r="1.4" /><circle cx="30" cy="43" r="1.4" />
@@ -203,11 +203,11 @@ function HomePageContent() {
               </g>
             </svg>
             <div style={{
-              width: 46, height: 46, borderRadius: '50%', background: 'var(--ks-paper)',
+              width: 65, height: 46, borderRadius: 12, background: '#F9E9D6',
               display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
               boxShadow: '0 4px 14px rgba(0,0,0,0.25)', position: 'relative',
             }}>
-              <PeacockMark size={38} />
+              <PeacockMark size={46} />
             </div>
           </div>
           <div>

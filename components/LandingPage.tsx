@@ -70,11 +70,11 @@ export default function LandingPage() {
         }} />
         <div style={{ position: 'relative' }}>
         <div style={{
-          width: 84, height: 84, borderRadius: '50%', background: 'var(--ks-paper)', margin: '0 auto 20px',
+          width: 120, height: 84, borderRadius: 18, background: '#F9E9D6', margin: '0 auto 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
           boxShadow: '0 0 0 1px rgba(255,255,255,0.18), 0 6px 18px rgba(0,0,0,0.25)',
         }}>
-          <PeacockMark size={64} />
+          <PeacockMark size={84} />
         </div>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 5.4vw, 30px)', color: '#fff', lineHeight: 1.28,
