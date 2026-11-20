@@ -56,6 +56,8 @@ function CataloguePageInner() {
   // Product details translated into the catalogue language, by product id.
   // Empty means "show them as the artisan wrote them".
   const [translatedById, setTranslatedById] = useState<Record<string, Product>>({})
+  // The artisan's "about" line in the catalogue language (null = as written).
+  const [translatedAbout, setTranslatedAbout] = useState<string | null>(null)
   const [translateNotice, setTranslateNotice] = useState('')
   const [preparing, setPreparing] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -103,6 +105,7 @@ function CataloguePageInner() {
     setPreparing(true)
     setTranslateNotice('')
     setLabels(documentLabels(language))
+    setTranslatedAbout(null)
     const chosen = products.filter((p) => selected.has(p.id))
     if (language === 'en' || chosen.length === 0) {
       setTranslatedById({})
@@ -117,13 +120,22 @@ function CataloguePageInner() {
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({
             language,
-            products: chosen.map(({ id, name, material, craft_type, description, craft_story }) => ({ id, name, material, craft_type, description, craft_story })),
+            products: [
+              ...chosen.map(({ id, name, material, craft_type, description, craft_story }) => ({ id, name, material, craft_type, description, craft_story })),
+              // The "about" line rides along as one more entry, so the
+              // whole catalogue comes back in the chosen language.
+              ...(profile?.about ? [{ id: ABOUT_ID, description: profile.about }] : []),
+            ],
           }),
         })
         if (!res.ok) throw new Error(String(res.status))
         const data = await res.json() as { products: Partial<Product>[]; translated: boolean }
         const map: Record<string, Product> = {}
         for (const tp of data.products) {
+          if (tp.id === ABOUT_ID) {
+            if (typeof tp.description === 'string' && tp.description.trim()) setTranslatedAbout(tp.description)
+            continue
+          }
           const original = chosen.find((p) => p.id === tp.id)
           if (original) map[original.id] = { ...original, ...tp, id: original.id, image_url: original.image_url }
         }
@@ -190,7 +202,7 @@ function CataloguePageInner() {
         labels,
         products: selectedProducts,
         artisanName: profile?.name ?? t('common.artisanFallback'),
-        about: profile?.about ?? null,
+        about: translatedAbout ?? profile?.about ?? null,
         photoUrl: profile?.profile_photo_url ?? null,
       },
     }, { onConflict: 'slug' })
@@ -553,7 +565,7 @@ function CataloguePageInner() {
               products={selectedProducts}
               businessName={profile?.business_name || profile?.name || t('common.artisanFallback')}
               artisanName={profile?.name ?? t('common.artisanFallback')}
-              about={profile?.about ?? null}
+              about={translatedAbout ?? profile?.about ?? null}
               photoUrl={profile?.profile_photo_url ?? null}
               contact={profile?.public_contact_phone || profile?.phone || '-'}
             />
@@ -605,6 +617,9 @@ const sectionLabel: React.CSSProperties = {
 const inlineErrorStyle: React.CSSProperties = {
   color: 'var(--ks-earth)', fontSize: 12.5, fontWeight: 500,
 }
+
+// Id of the artisan's "about" line in the translation request.
+const ABOUT_ID = '__about__'
 
 export default function CataloguePage() {
   return (
