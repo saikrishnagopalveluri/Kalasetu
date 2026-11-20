@@ -73,9 +73,10 @@ export default function RootLayout({
       <AskAIModal />
 
         {/* ── Header ─────────────────────────────────────── */}
-        <header style={{
-          background: 'var(--ks-earth)',
-          padding: 'calc(12px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 12px max(20px, env(safe-area-inset-left))',
+        <header className="ks-night-sky ks-scallop" style={{
+          backgroundColor: 'var(--ks-earth)',
+          ['--s' as string]: '6px',
+          padding: 'calc(12px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 18px max(20px, env(safe-area-inset-left))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -123,7 +124,6 @@ export default function RootLayout({
             <HeaderAuthStatus />
           </div>
         </header>
-        <div className="ks-zari-band" />
 
         {/* ── Main content ───────────────────────────────── */}
         <MainContainer>{children}</MainContainer>

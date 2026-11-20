@@ -6,12 +6,13 @@ import { supabase, supabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import LandingPage from '@/components/LandingPage'
 import { useLanguage } from '@/lib/LanguageProvider'
-import VoiceAgentBanner from '@/components/VoiceAgentBanner'
 import { useAskAI } from '@/lib/AskAIProvider'
 import type { TranslationKey } from '@/lib/translations'
 import ProductTour from '@/components/ProductTour'
+import VoiceAgentBanner from '@/components/VoiceAgentBanner'
+import { useLocalHour } from '@/lib/useLocalHour'
 import PeacockMark from '@/components/PeacockMark'
-import FeatherFlourish from '@/components/FeatherFlourish'
+import { GondCloud, GondScene, skyTimeFor } from '@/components/GondArt'
 import {
   IconStudio, IconDesign, IconContent, IconPromote, IconCoach, IconCalculator,
   IconLearn, IconCatalogue, IconOpportunities, IconBlog, IconPricing, IconCheck,
@@ -61,9 +62,11 @@ const DAILY_CONTENT_LIMIT = 20
 // Was hardcoded to "Good morning" no matter when someone actually logged in.
 // Uses the device's local clock (not a server timestamp), so it's correct
 // for whatever timezone the artisan is actually in.
-function greetingKey(): TranslationKey {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'home.greeting'
+function greetingKey(hour: number | null): TranslationKey {
+  // Before 5 am the painted sky is still night, so the greeting stays
+  // "evening" instead of saying "Good morning" under the moon.
+  if (hour !== null && hour < 5) return 'home.greetingEvening'
+  if (hour === null || hour < 12) return 'home.greeting'
   if (hour < 17) return 'home.greetingAfternoon'
   return 'home.greetingEvening'
 }
@@ -94,9 +97,10 @@ type ActivityStats = {
   cataloguePublished: boolean
 }
 
-function HomePageContent() {
+function HomePageContent({ demo = false }: { demo?: boolean }) {
   const { user, profile } = useAuth()
   const { t } = useLanguage()
+  const hour = useLocalHour()
   const { open: openAskAI } = useAskAI()
   const [recent, setRecent] = useState<RecentRow[] | null>(null)
   const [contentToday, setContentToday] = useState<number | null>(null)
@@ -162,10 +166,12 @@ function HomePageContent() {
     })
   }, [user, profile])
 
-  // recent/contentToday stay null on a failed query (e.g. table missing) — falls
-  // back to demo data rather than showing a misleading "0".
-  const recentToShow = recent
-  const contentUsed = contentToday ?? 8
+  // Demo data is only for a build with no Supabase configured (a local
+  // preview). A real artisan used to see a made-up "8/20" quota and three
+  // invented creations while their own data loaded, or forever if a query
+  // failed; now they see a loading placeholder and then their real data.
+  const recentToShow = demo ? null : recent
+  const contentUsed = demo ? 8 : contentToday
 
   const checklist = stats ? [
     { done: stats.productsCount >= 1, labelKey: 'home.checklist.item.product' as TranslationKey, href: '/products' },
@@ -179,69 +185,64 @@ function HomePageContent() {
   const allDone = checklistTotal > 0 && checklistDone === checklistTotal
 
   return (
-    <div>
+    <div className="ks-rise">
 
-      {/* ── Greeting banner ─────────────────────────────── */}
-      <div id="tour-greeting" className="ks-banner-ikat" style={{
-        borderRadius: 16,
-        padding: '22px 24px 22px',
-        marginBottom: 16,
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <FeatherFlourish style={{ position: 'absolute', right: -12, bottom: -18, width: 150, height: 130 }} />
+      {/* ── Greeting: a painted sky that follows the local time ─ */}
+      <GondScene id="tour-greeting" compact sky={hour === null ? 'night' : skyTimeFor(hour)} className="ks-scene-top">
         <ProductTour />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, position: 'relative' }}>
-          <div style={{ position: 'relative', width: 65, height: 46, flexShrink: 0 }}>
-            {/* A rangoli dot-ring — the small mark drawn at a threshold —
-                framing the peacock mark, echoed by the frieze/motif classes
-                already used elsewhere on this page. */}
-            <svg viewBox="0 0 46 46" preserveAspectRatio="none" style={{ position: 'absolute', top: -5, left: -5, width: 75, height: 56 }} aria-hidden="true">
-              <g fill="rgba(212,160,23,0.55)">
-                <circle cx="23" cy="1.5" r="1.4" /><circle cx="34" cy="4.5" r="1.4" /><circle cx="42" cy="13" r="1.4" />
-                <circle cx="44.5" cy="24" r="1.4" /><circle cx="40" cy="35" r="1.4" /><circle cx="30" cy="43" r="1.4" />
-                <circle cx="18" cy="43" r="1.4" /><circle cx="8" cy="36" r="1.4" /><circle cx="2.5" cy="25" r="1.4" />
-                <circle cx="4" cy="14" r="1.4" /><circle cx="12" cy="5" r="1.4" />
-              </g>
-            </svg>
-            <div style={{
-              width: 65, height: 46, borderRadius: 12, background: '#F9E9D6',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.25)', position: 'relative',
-            }}>
-              <PeacockMark size={46} />
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18, paddingRight: 96 }}>
+          <div className="ks-medallion" style={{
+            ...accentVar('#E0A526'), width: 54, height: 54, background: 'var(--ks-paper)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+          }}>
+            <PeacockMark size={30} />
           </div>
-          <div>
-            <p style={{ color: 'var(--ks-turmeric)', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>
-              {t(greetingKey())}
+          <div style={{ minWidth: 0 }}>
+            <p className="ks-eyebrow" style={{ color: 'var(--scene-accent)', fontSize: 10.5, marginBottom: 4 }}>
+              {t(greetingKey(hour))}
             </p>
-            <h1 style={{
-              color: '#fff',
-              fontSize: 22,
-              fontFamily: 'var(--font-display)',
-              lineHeight: 1.15,
-            }}>
+            <h1 style={{ color: 'var(--scene-ink)', fontSize: 'clamp(21px, 4.4vw, 27px)', fontFamily: 'var(--font-display)', lineHeight: 1.15 }}>
               {profile?.name ?? t('home.greetingFallback')}
             </h1>
           </div>
         </div>
-        <div style={{ position: 'relative' }}>
+        <div style={{ maxWidth: 300 }}>
           <UsageMeter label={t('home.contentToday')} used={contentUsed} total={DAILY_CONTENT_LIMIT} />
         </div>
-      </div>
-
-      <div className="ks-frieze" style={{ marginBottom: 24 }} />
+      </GondScene>
 
       <VoiceAgentBanner />
 
+      {/* ── Points, people helped, learning: medallion tiles ─ */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10,
+        marginTop: -30, marginBottom: 26, position: 'relative', zIndex: 2,
+      }}>
+        <Link href="/wallet" className="ks-tile ks-press" style={{ ...statTileStyle, ...accentVar('#B7860F') }}>
+          <span className="ks-medallion" style={{ ...accentVar('#B7860F'), width: 36, height: 36 }}><IconWallet size={17} /></span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--ks-earth)', fontFamily: 'var(--font-display)' }}>
+            {walletBalance === null ? <span className="ks-skeleton" aria-label={t('common.loading')} style={{ display: 'inline-block', width: 36, height: 14, verticalAlign: 'middle' }} /> : walletBalance}
+          </span>
+          <span style={statLabelStyle}>{t('home.kalaPoints')}</span>
+        </Link>
+        <Link href="/saathi" className="ks-tile ks-press" style={{ ...statTileStyle, ...accentVar('#A8432A') }}>
+          <span className="ks-medallion" style={{ ...accentVar('#A8432A'), width: 36, height: 36 }}><IconSaathi size={17} /></span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--ks-earth)', fontFamily: 'var(--font-display)' }}>{artisansEmpowered ?? 0}</span>
+          <span style={statLabelStyle}>{t('home.artisansEmpowered')}</span>
+        </Link>
+        <Link href="/upskill" className="ks-tile ks-press" style={{ ...statTileStyle, ...accentVar('#1F5A57') }}>
+          <span className="ks-medallion" style={{ ...accentVar('#1F5A57'), width: 36, height: 36 }}><IconUpskill size={17} /></span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ks-earth)', lineHeight: 1.25 }}>{t('home.continueLearning')}</span>
+          <span style={statLabelStyle}>{t('nav.upskill')} →</span>
+        </Link>
+      </div>
+
       {/* ── Getting started checklist ───────────────────── */}
       {stats && checklistTotal > 0 && (
-        <div id="tour-challenges" className="ks-motif-frame" style={{ marginBottom: 20 }}>
-          <div className="ks-motif-frame-body">
-            <p style={{
-              fontSize: 11, fontWeight: 700, color: 'var(--ks-clay)',
-              textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: allDone ? 6 : 4,
+        <div id="tour-challenges" className="ks-panel" style={{ marginBottom: 24, padding: '20px 18px' }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <p className="ks-eyebrow" style={{
+              fontSize: 11, fontWeight: 700, color: 'var(--ks-clay)', marginBottom: allDone ? 6 : 4,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span className="ks-motif-dot" aria-hidden="true" />
@@ -263,13 +264,14 @@ function HomePageContent() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {checklist.map((item) => (
-                    <a
+                    <Link
                       key={item.labelKey}
                       href={item.href}
+                      className="ks-press"
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none',
                         padding: '9px 10px', borderRadius: 9,
-                        background: item.done ? 'transparent' : 'var(--ks-linen)',
+                        background: item.done ? 'transparent' : 'rgba(234, 220, 192, 0.5)', position: 'relative',
                       }}
                     >
                       <span style={{
@@ -288,7 +290,7 @@ function HomePageContent() {
                       }}>
                         {t(item.labelKey)}
                       </span>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               </>
@@ -297,162 +299,29 @@ function HomePageContent() {
         </div>
       )}
 
-      {/* ── Impact + wallet + learning nudge ────────────── */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
-        <Link href="/wallet" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
-          <IconWallet size={18} style={{ color: 'var(--ks-clay)' }} />
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>
-              {walletBalance === null ? <span className="ks-skeleton" aria-label={t('common.loading')} style={{ display: 'inline-block', width: 36, height: 14, verticalAlign: 'middle' }} /> : walletBalance}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.kalaPoints')}</div>
-          </div>
-        </Link>
-        <Link href="/saathi" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
-          <IconSaathi size={18} style={{ color: 'var(--ks-clay)' }} />
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>{artisansEmpowered ?? 0}</div>
-            <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.artisansEmpowered')}</div>
-          </div>
-        </Link>
-        <Link href="/upskill" style={{ ...dashChipStyle, flex: '1 1 130px' }}>
-          <IconUpskill size={18} style={{ color: 'var(--ks-clay)' }} />
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ks-earth)' }}>{t('home.continueLearning')}</div>
-            <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('nav.upskill')} →</div>
-          </div>
-        </Link>
-      </div>
-
-
-      {/* ── Quick actions ────────────────────────────────── */}
-      <h2 style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 18,
-        marginBottom: 16,
-        color: 'var(--ks-earth)',
-      }}>
-        {t('home.whatToDo')}
-      </h2>
-
-      <div id="tour-actions" className="ks-qa-scroll" style={{
-        display: 'flex',
-        gap: 12,
-        overflowX: 'auto',
-        margin: '0 -20px 28px',
-        padding: '2px 20px 6px',
-      }}>
-        {PRIMARY_ACTIONS.map((action) => (
-          <a
-            key={action.titleKey}
-            href={action.href}
-            onClick={action.isModal ? (e) => { e.preventDefault(); openAskAI() } : undefined}
-            className="ks-qa-item"
-            style={{
-              flexShrink: 0,
-              width: 92,
-              background: 'var(--ks-ivory)',
-              borderRadius: 14,
-              padding: '14px 10px',
-              border: '1px solid var(--ks-border)',
-              boxShadow: '0 2px 8px rgba(19,42,69,0.05)',
-              textDecoration: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              gap: 8,
-            }}
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: `${action.accent}18`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <action.Icon size={22} style={{ color: action.accent }} />
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11.5,
-              color: 'var(--ks-earth)', lineHeight: 1.3,
-            }}>
-              {t(action.titleKey)}
-            </div>
-          </a>
-        ))}
-      </div>
-
-      <div className="ks-zari-band" style={{ marginBottom: 20, borderRadius: 3 }} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 32 }}>
-        {GROW_ACTIONS.map((action) => (
-          <a
-            key={action.titleKey}
-            href={action.href}
-            className="ks-qa-row"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 13,
-              background: 'var(--ks-ivory)', borderRadius: 14, padding: '13px 15px',
-              border: '1px solid var(--ks-border)', boxShadow: '0 1px 4px rgba(19,42,69,0.04)',
-              textDecoration: 'none',
-            }}
-          >
-            <div style={{
-              width: 40, height: 40, borderRadius: 11, flexShrink: 0,
-              background: `${action.accent}18`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <action.Icon size={20} style={{ color: action.accent }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5, color: 'var(--ks-earth)', marginBottom: 1 }}>
-                {t(action.titleKey)}
-              </div>
-              <div style={{ fontFamily: 'var(--font-body)', fontSize: 11.5, color: 'var(--ks-muted)', lineHeight: 1.4 }}>
-                {t(action.descKey)}
-              </div>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ks-border)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </a>
-        ))}
-      </div>
-
-      <style jsx>{`
-        .ks-qa-scroll::-webkit-scrollbar { display: none; }
-        .ks-qa-item, .ks-qa-row { transition: transform 0.15s ease, box-shadow 0.15s ease; }
-        .ks-qa-item:active, .ks-qa-row:active { transform: scale(0.97); }
-        @media (hover: hover) {
-          .ks-qa-item:hover, .ks-qa-row:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(19,42,69,0.1); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .ks-qa-item, .ks-qa-row { transition: none; }
-        }
-      `}</style>
-
       {/* ── Invite & Earn banner ────────────────────────── */}
       {/* Always visible, not gated on artisansEmpowered > 0 — this is the
           primary discovery surface for the Saathi referral program, and
           most artisans start at zero empowerments. Gating it on a nonzero
           count would hide the entire feature from exactly the people who
           haven't used it yet. */}
-      <a
+      <Link
         id="tour-saathi-banner"
         href="/saathi"
+        className="ks-press ks-band-rust"
         style={{
-          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
-          background: 'var(--ks-clay)', borderRadius: 14, padding: '16px 18px',
-          marginBottom: 20, boxShadow: '0 4px 14px rgba(196,85,45,0.25)',
+          display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', position: 'relative', overflow: 'hidden',
+          borderRadius: 18, padding: '18px 18px', marginBottom: 30,
+          outline: '1.5px dotted rgba(244,231,195,0.5)', outlineOffset: -6,
+          boxShadow: '0 6px 18px rgba(168,67,42,0.28)',
         }}
       >
-        <div style={{
-          width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.18)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <IconSaathi size={22} style={{ color: '#fff' }} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+        <GondCloud style={{ position: 'absolute', right: -18, bottom: -14, width: 96, opacity: 0.25 }} />
+        <span className="ks-medallion" style={{ ...accentVar('#F4E7C3'), background: 'rgba(255,255,255,0.14)', color: '#fff' }}>
+          <IconSaathi size={22} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 2, fontFamily: 'var(--font-display)' }}>
             {t('saathi.ctaTitle')}
           </div>
           <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
@@ -460,24 +329,80 @@ function HomePageContent() {
           </div>
         </div>
         <span style={{
-          flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ks-clay)',
-          background: '#fff', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap',
+          flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--ks-earth)', position: 'relative',
+          background: 'var(--ks-turmeric)', borderRadius: 999, padding: '8px 14px', whiteSpace: 'nowrap',
         }}>
           {t('saathi.inviteArtisan')}
         </span>
-      </a>
+      </Link>
+
+      {/* ── Quick actions ────────────────────────────────── */}
+      <h2 className="ks-section-title">
+        {t('home.whatToDo')}
+      </h2>
+
+      <div id="tour-actions" style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 30,
+      }}>
+        {PRIMARY_ACTIONS.map((action) => {
+          const body = (
+            <>
+              <span className="ks-medallion" style={accentVar(action.accent)}>
+                <action.Icon size={22} />
+              </span>
+              <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--ks-earth)', lineHeight: 1.3, position: 'relative' }}>
+                {t(action.titleKey)}
+              </span>
+            </>
+          )
+          // The AI coach opens a modal, so it is a real button, not a link
+          // that cancels its own navigation.
+          return action.isModal ? (
+            <button key={action.titleKey} type="button" onClick={openAskAI} className="ks-tile ks-press" style={{ ...qaTileStyle, ...accentVar(action.accent) }}>{body}</button>
+          ) : (
+            <Link key={action.titleKey} href={action.href} className="ks-tile ks-press" style={{ ...qaTileStyle, ...accentVar(action.accent) }}>{body}</Link>
+          )
+        })}
+      </div>
+
+      <div className="ks-frieze" style={{ marginBottom: 22 }} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 10, marginBottom: 34 }}>
+        {GROW_ACTIONS.map((action) => (
+          <Link
+            key={action.titleKey}
+            href={action.href}
+            className="ks-panel ks-press"
+            style={{ ...accentVar(action.accent), display: 'flex', alignItems: 'center', gap: 15, padding: '15px 16px', textDecoration: 'none' }}
+          >
+            <span className="ks-medallion" style={{ ...accentVar(action.accent), width: 40, height: 40 }}>
+              <action.Icon size={19} />
+            </span>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <div style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5, color: 'var(--ks-earth)', marginBottom: 1 }}>
+                {t(action.titleKey)}
+              </div>
+              <div style={{ fontFamily: 'var(--font-body)', fontSize: 11.5, color: 'var(--ks-muted)', lineHeight: 1.4 }}>
+                {t(action.descKey)}
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ks-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </Link>
+        ))}
+      </div>
 
       {/* ── Recent creations ─────────────────────────────── */}
-      <h2 id="tour-recent" style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 18,
-        marginBottom: 16,
-        color: 'var(--ks-earth)',
-      }}>
+      <h2 id="tour-recent" className="ks-section-title">
         {t('home.recentCreations')}
       </h2>
 
-      {recentToShow === null ? (
+      {recentToShow === null && !demo ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }} aria-busy="true" aria-label={t('common.loading')}>
+          {[0, 1, 2].map((i) => <div key={i} className="ks-skeleton" style={{ height: 70 }} />)}
+        </div>
+      ) : recentToShow === null ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {DEMO_RECENT.map((item) => {
             const time = item.timeN ? t(item.timeKey).replace('{n}', String(item.timeN)) : t(item.timeKey)
@@ -491,9 +416,17 @@ function HomePageContent() {
           backgroundColor: 'var(--ks-ivory)', border: '1px solid var(--ks-border)',
           borderRadius: 12, padding: '20px 16px', textAlign: 'center',
         }}>
-          <p style={{ fontSize: 14, color: 'var(--ks-muted)' }}>
+          <p style={{ fontSize: 14, color: 'var(--ks-muted)', marginBottom: 14 }}>
             {t('home.recentEmpty')}
           </p>
+          <Link href="/promote" className="ks-press" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44,
+            background: 'var(--ks-earth)', color: '#fff', borderRadius: 10,
+            padding: '10px 18px', fontSize: 13.5, fontWeight: 600, textDecoration: 'none',
+          }}>
+            <IconPromote size={16} />
+            {t('home.recentEmptyCta')}
+          </Link>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -534,7 +467,7 @@ export default function HomePage() {
   // Unlike every other authenticated route, "/" doubles as the front door —
   // a logged-out visitor should see a pitch for the product, not get bounced
   // straight to a bare login form with zero context.
-  if (!supabaseConfigured) return <HomePageContent />
+  if (!supabaseConfigured) return <HomePageContent demo />
   if (loading) return <p style={{ fontSize: 13, color: 'var(--ks-muted)' }}>{t('common.loading')}</p>
   if (!user) return <LandingPage />
   return <HomePageContent />
@@ -560,7 +493,7 @@ function RecentRowCard({
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
-      className={onClick ? 'ks-recent-card' : undefined}
+      className={onClick ? 'ks-press' : undefined}
       style={{
         background: 'var(--ks-ivory)',
         borderRadius: 12,
@@ -608,27 +541,6 @@ function RecentRowCard({
           {preset}
         </span>
       )}
-      <style jsx>{`
-        .ks-recent-card {
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .ks-recent-card:active {
-          transform: scale(0.98);
-        }
-        @media (hover: hover) {
-          .ks-recent-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(19,42,69,0.12);
-          }
-        }
-        .ks-recent-card:focus-visible {
-          outline: 2px solid var(--ks-turmeric);
-          outline-offset: 2px;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .ks-recent-card { transition: none; }
-        }
-      `}</style>
     </div>
   )
 }
@@ -688,12 +600,21 @@ function RecentDetailModal({
   )
 }
 
-/* ── Getting-started progress ring ──────────────────────── */
-const dashChipStyle: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 9, background: 'var(--ks-ivory)', border: '1px solid var(--ks-border)',
-  boxShadow: '0 2px 8px rgba(19,42,69,0.05)', borderRadius: 12, padding: '12px 13px', textDecoration: 'none',
+const accentVar = (c: string) => ({ ['--accent' as string]: c }) as React.CSSProperties
+
+const qaTileStyle: React.CSSProperties = {
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 12,
+  padding: '20px 10px 16px', minHeight: 116, textDecoration: 'none', font: 'inherit', cursor: 'pointer',
 }
 
+const statTileStyle: React.CSSProperties = {
+  display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4,
+  padding: '13px 12px 12px', textDecoration: 'none', boxShadow: '0 8px 22px rgba(19,42,69,0.12)', minWidth: 0,
+}
+
+const statLabelStyle: React.CSSProperties = { fontSize: 10.5, color: 'var(--ks-muted)', lineHeight: 1.3 }
+
+/* ── Getting-started progress ring ──────────────────────── */
 function ProgressRing({ done, total }: { done: number; total: number }) {
   const r = 17
   const circumference = 2 * Math.PI * r
@@ -725,10 +646,10 @@ function UsageMeter({
   total,
 }: {
   label: string
-  used: number
+  used: number | null
   total: number
 }) {
-  const pct = Math.round((used / total) * 100)
+  const pct = used === null ? 0 : Math.min(100, Math.round((used / total) * 100))
 
   return (
     <div>
@@ -737,24 +658,34 @@ function UsageMeter({
         justifyContent: 'space-between',
         marginBottom: 5,
         fontSize: 12,
-        color: 'rgba(255,255,255,0.8)',
+        color: 'var(--scene-ink-soft, rgba(255,255,255,0.8))',
       }}>
         <span>{label}</span>
-        <span style={{ fontWeight: 600 }}>{used}/{total}</span>
+        <span style={{ fontWeight: 600 }}>{used === null ? '–' : used}/{total}</span>
       </div>
       <div style={{
         width: '100%',
         maxWidth: 260,
         height: 4,
-        background: 'rgba(255,255,255,0.25)',
+        background: 'var(--scene-track, rgba(255,255,255,0.25))',
         borderRadius: 2,
       }}>
-        <div style={{
-          width: `${pct}%`,
-          height: '100%',
-          background: '#fff',
-          borderRadius: 2,
-        }} />
+        <div
+          role="progressbar"
+          aria-label={label}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={used ?? undefined}
+          style={{
+            width: '100%',
+            height: '100%',
+            background: 'var(--scene-ink, #fff)',
+            borderRadius: 2,
+            transform: `scaleX(${pct / 100})`,
+            transformOrigin: 'left',
+            transition: 'transform 600ms var(--ease-out)',
+          }}
+        />
       </div>
     </div>
   )

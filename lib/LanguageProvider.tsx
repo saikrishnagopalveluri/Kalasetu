@@ -18,6 +18,9 @@ type LanguageContextValue = {
   setLanguage: (lang: LanguageId) => void
   t: (key: TranslationKey) => string
   showGate: boolean
+  // false until the starting language has been worked out (the gate may
+  // still be about to open), so the dashboard guide waits for it.
+  languageResolved: boolean
   dismissGate: (lang: LanguageId) => void
 }
 
@@ -92,7 +95,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [language])
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, showGate: showGate === true, dismissGate }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, showGate: showGate === true, languageResolved: showGate !== undefined, dismissGate }}>
       {children}
     </LanguageContext.Provider>
   )

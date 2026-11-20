@@ -1,90 +1,160 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { driver, type DriveStep } from 'driver.js'
+import { useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { driver, type DriveStep, type Driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useAuth } from '@/lib/useAuth'
 import { useLanguage } from '@/lib/LanguageProvider'
+import type { TranslationKey } from '@/lib/translations'
+import { hasSeenGuide, markGuideSeen, presentSteps, prefersReducedMotion, shouldAutoStartGuide } from '@/lib/onboarding'
 
-const SEEN_KEY = 'hastkatha-tour-seen'
+// Post-login guide for the dashboard (app/page.tsx) and the bottom NavBar.
+// Follows the onboarding rule of thumb: orient, don't educate. Four core
+// things (where to start, how to create, where help is, where everything
+// lives), then hand the artisan straight to their first real action
+// instead of ending on a dead "Got it".
+//
+// Runs once per account (lib/onboarding.ts), only after the language
+// chooser is gone, and can be replayed from the "Take a tour" button.
 
-// A short guided tour of the logged-in dashboard (app/page.tsx) plus the
-// bottom NavBar, for artisans who are new to the app. Auto-runs once per
-// browser (tracked in localStorage, not the account, since it's just a
-// UI hint) and can be re-run any time from the "Take a tour" button this
-// component also renders.
+const FIRST_TARGET = '#tour-challenges'
+const WAIT_FOR_TARGET_MS = 4000
+
+type Step = { element?: string; title: TranslationKey; desc: TranslationKey; side?: 'top' | 'bottom'; align?: 'start' | 'center' | 'end' }
+
+const STEPS: Step[] = [
+  { title: 'guide.welcome.title', desc: 'guide.welcome.desc' },
+  { element: '#tour-challenges', title: 'guide.start.title', desc: 'guide.start.desc', side: 'bottom', align: 'start' },
+  { element: '#tour-actions', title: 'guide.create.title', desc: 'guide.create.desc', side: 'top', align: 'start' },
+  { element: '#tour-nav-coach', title: 'tour.navCoach.title', desc: 'tour.navCoach.desc', side: 'top', align: 'end' },
+  { element: '#tour-nav-bar', title: 'guide.nav.title', desc: 'guide.nav.desc', side: 'top', align: 'center' },
+  { title: 'guide.finish.title', desc: 'guide.finish.desc' },
+]
+
 export default function ProductTour() {
-  const { user } = useAuth()
-  const { t } = useLanguage()
+  const { user, loading } = useAuth()
+  const { t, showGate, languageResolved } = useLanguage()
+  const router = useRouter()
   const autoStarted = useRef(false)
+  const active = useRef<Driver | null>(null)
 
-  function start() {
-    const allSteps: DriveStep[] = [
-      { popover: { title: t('tour.welcome.title'), description: t('tour.welcome.desc') } },
-      { element: '#tour-greeting', popover: { title: t('tour.progress.title'), description: t('tour.progress.desc'), side: 'bottom', align: 'start' } },
-      { element: '#tour-challenges', popover: { title: t('tour.challenges.title'), description: t('tour.challenges.desc'), side: 'bottom', align: 'start' } },
-      { element: '#tour-saathi-banner', popover: { title: t('saathi.ctaTitle'), description: t('saathi.ctaDesc'), side: 'bottom', align: 'start' } },
-      { element: '#tour-actions', popover: { title: t('tour.actions.title'), description: t('tour.actions.desc'), side: 'top', align: 'start' } },
-      { element: '#tour-nav-create', popover: { title: t('tour.navCreate.title'), description: t('tour.navCreate.desc'), side: 'top', align: 'center' } },
-      { element: '#tour-nav-community', popover: { title: t('tour.navCommunity.title'), description: t('tour.navCommunity.desc'), side: 'top', align: 'center' } },
-      { element: '#tour-nav-upskill', popover: { title: t('tour.navUpskill.title'), description: t('tour.navUpskill.desc'), side: 'top', align: 'center' } },
-      { element: '#tour-nav-coach', popover: { title: t('tour.navCoach.title'), description: t('tour.navCoach.desc'), side: 'top', align: 'end' } },
-      { element: '#tour-recent', popover: { title: t('tour.recent.title'), description: t('tour.recent.desc'), side: 'top', align: 'start' } },
-    ]
-    // Only include steps whose target actually exists on the page right now
-    // (e.g. recent creations always renders something, but a future step
-    // added here might not always have a match) — driver.js throws if a
-    // step's element selector matches nothing.
-    const steps = allSteps.filter((step) => !step.element || document.querySelector(step.element as string))
+  const start = useCallback(() => {
+    if (active.current?.isActive()) return
+    const steps = presentSteps(STEPS, (sel) => !!document.querySelector(sel))
+    const lastIndex = steps.length - 1
 
-    const driverObj = driver({
+    const goToFirstAction = () => {
+      active.current?.destroy()
+      router.push('/products')
+    }
+    const driveSteps: DriveStep[] = steps.map((s, i) => ({
+      element: s.element,
+      popover: {
+        title: t(s.title),
+        description: t(s.desc),
+        side: s.side,
+        align: s.align,
+        // The last step's primary button is the first real action, not "Done".
+        ...(i === lastIndex && {
+          doneBtnText: t('guide.finish.cta'),
+          onNextClick: goToFirstAction,
+          onDoneClick: goToFirstAction,
+        }),
+      },
+    }))
+
+    const d = driver({
+      steps: driveSteps,
+      popoverClass: 'ks-tour',
       showProgress: true,
+      progressText: t('guide.progress'),
+      showButtons: ['next', 'previous', 'close'],
       allowClose: true,
-      overlayColor: 'rgba(19,42,69,0.7)',
+      allowKeyboardControl: true,
+      // Highlighted nav links stayed clickable, so a tap mid-guide navigated
+      // away and left a half-torn-down overlay.
+      disableActiveInteraction: true,
+      animate: !prefersReducedMotion(),
+      smoothScroll: !prefersReducedMotion(),
+      overlayColor: '#0b1a2c',
+      overlayOpacity: 0.72,
+      stagePadding: 6,
+      stageRadius: 14,
+      popoverOffset: 12,
       nextBtnText: t('tour.next'),
       prevBtnText: t('tour.prev'),
       doneBtnText: t('tour.done'),
-      steps,
       onDestroyed: () => {
-        try { localStorage.setItem(SEEN_KEY, '1') } catch { /* private-mode storage, safe to ignore */ }
+        if (user) markGuideSeen(user.id)
+        active.current = null
       },
     })
-    driverObj.drive()
-  }
+    active.current = d
+    d.drive()
+  }, [t, router, user])
+
+  // `start` changes identity whenever the profile or language reloads (auth
+  // events do this in the background). The pending auto-start must survive
+  // that, so it calls through a ref and is only cancelled on unmount.
+  const startRef = useRef(start)
+  useEffect(() => { startRef.current = start }, [start])
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!user || autoStarted.current) return
+    if (autoStarted.current || !user) return
+    const ready = shouldAutoStartGuide({
+      userId: user.id,
+      authLoading: loading,
+      languageGateOpen: showGate || !languageResolved,
+      seen: hasSeenGuide(user.id),
+    })
+    if (!ready) return
     autoStarted.current = true
-    let seen = false
-    try { seen = localStorage.getItem(SEEN_KEY) === '1' } catch { /* private-mode storage, treat as unseen */ }
-    if (seen) return
-    // Mark as seen right away, not only in onDestroyed: if the artisan
-    // clicks a highlighted nav link mid-tour (a very likely thing to do,
-    // since the tour points at real nav items), the SPA navigates away and
-    // driver.js's overlay is torn down without ever calling onDestroyed,
-    // so the flag never got set and the tour kept reappearing on every
-    // subsequent login.
-    try { localStorage.setItem(SEEN_KEY, '1') } catch { /* private-mode storage, safe to ignore */ }
-    // Small delay so the dashboard's own data (level, challenges) has
-    // rendered before the tour tries to highlight it.
-    const timer = setTimeout(start, 900)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+    const userId = user.id
+
+    // The checklist renders only after its data loads; wait for it (briefly)
+    // so the guide doesn't skip the most important step.
+    const startedAt = Date.now()
+    const tick = () => {
+      if (document.querySelector(FIRST_TARGET) || Date.now() - startedAt > WAIT_FOR_TARGET_MS) {
+        pending.current = null
+        // Mark seen as it opens: if the tab is closed mid-guide, it should
+        // not ambush the artisan again on the next login.
+        markGuideSeen(userId)
+        startRef.current()
+      } else {
+        pending.current = setTimeout(tick, 150)
+      }
+    }
+    pending.current = setTimeout(tick, 400)
+  }, [user, loading, showGate, languageResolved])
+
+  // Tear down on unmount (route change) so no overlay or timer is left behind.
+  // If the component unmounts before the guide opened (including React's
+  // dev-mode remount check, which keeps refs), re-arm the auto-start.
+  useEffect(() => () => {
+    if (pending.current) {
+      clearTimeout(pending.current)
+      pending.current = null
+      autoStarted.current = false
+    }
+    active.current?.destroy()
+  }, [])
 
   if (!user) return null
 
   return (
     <button
+      type="button"
       onClick={start}
-      style={{
-        position: 'absolute', top: 16, right: 16,
-        background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.35)', color: '#fff',
-        borderRadius: 999, padding: '6px 13px', fontSize: 11.5, fontWeight: 600,
-        cursor: 'pointer', fontFamily: 'var(--font-body)', display: 'inline-flex', alignItems: 'center', gap: 5,
-      }}
+      className="ks-tour-trigger"
+      aria-label={t('tour.cta')}
     >
-      <span aria-hidden="true">🧭</span> {t('tour.cta')}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" /><path d="M16.2 7.8l-2.1 6.3-6.3 2.1 2.1-6.3z" />
+      </svg>
+      {t('tour.cta')}
     </button>
   )
 }

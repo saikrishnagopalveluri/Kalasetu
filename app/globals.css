@@ -1,26 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Poppins:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 
-/* ── Hastkatha Design Tokens ─────────────────────────────── */
-/* Peacock brand identity: navy (primary), deep green + terracotta (accents),
-   mustard gold (highlight), warm beige (ground). */
+/* ── KalaSetu Design Tokens ─────────────────────────────── */
+/* Peacock brand identity in a Gond folk-painting palette: night navy
+   (ink, sky), teal and leaf green (ground), rust and terracotta (warm
+   sky, accents), saffron (highlight), unbleached cream paper (page). */
 :root {
   --ks-earth:      #132A45;  /* navy — ink + header/nav chrome */
   --ks-indigo:     #132A45;  /* navy — primary actions (same as ink, single-accent brand) */
   --ks-clay:       #C4552D;  /* terracotta — secondary accent */
   --ks-saffron:    #D4A017;  /* mustard gold — tertiary / hover */
   --ks-turmeric:   #D4A017;  /* mustard gold — highlight */
-  --ks-paper:      #F4EFE6;  /* warm beige — page bg */
-  --ks-linen:      #ECE4D3;  /* deeper beige — card bg */
-  --ks-ivory:      #FAF7F0;  /* near-white cream — input bg */
+  --ks-paper:      #F3EAD8;  /* unbleached cream — page bg */
+  --ks-linen:      #EADCC0;  /* deeper cream — card bg */
+  --ks-ivory:      #FCF7EC;  /* near-white cream — card / input bg */
   --ks-jade:       #0F5B4E;  /* deep green — success */
-  --ks-muted:      #5C6B7A;  /* muted navy-grey — secondary text */
-  --ks-border:     rgba(19, 42, 69, 0.14);
+  --ks-muted:      #625a52;  /* warm grey — secondary text */
+  --ks-border:     rgba(92, 58, 30, 0.16);
+  --ks-teal:       #1F5A57;  /* painted ground */
+  --ks-leaf:       #2F6B4F;  /* far hills */
+  --ks-rust:       #A8432A;  /* evening sky */
+  --ks-night:      #132A45;  /* night sky, same as the header */
 
   /* English/Latin renders in the brand fonts; any Indic script (Telugu,
      Hindi, Tamil, etc.) silently falls through to the multilingual fonts,
      since Playfair Display and Poppins have no Indic glyphs at all. */
   --font-display:  'Playfair Display', 'Hind Siliguri', serif;
   --font-body:     'Poppins', 'Noto Sans', sans-serif;
+
+  /* Motion. The built-in CSS easings are too soft; these give UI a crisp,
+     immediate start. ease-out for things entering or responding to a
+     press, ease-in-out for things moving on screen. Never ease-in. */
+  --ease-out:      cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer:   cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ── Kalamkari motifs ───────────────────────────────────────
@@ -28,23 +40,44 @@
    (Venkatagiri border), an ikat-blur texture, and a kalamkari creeper
    frieze. Nothing here competes with buttons or text for attention. */
 .ks-zari-band {
+  /* A Gond dotted line: alternating rust and saffron beads. */
   height: 6px;
-  background-image: repeating-linear-gradient(115deg, transparent 0 3px, rgba(212, 160, 23, .65) 3px 4px, transparent 4px 9px);
-  background-color: var(--ks-indigo);
-}
-
-.ks-banner-ikat {
   background:
-    repeating-linear-gradient(100deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 7px, rgba(255, 255, 255, .035) 7px 10px, transparent 10px 18px),
-    var(--ks-indigo);
+    radial-gradient(circle, var(--ks-rust) 0 1.8px, transparent 2.2px) 0 50% / 16px 6px repeat-x,
+    radial-gradient(circle, #E0A526 0 1.8px, transparent 2.2px) 8px 50% / 16px 6px repeat-x;
 }
 
+/* Night sky (after Gond paintings: indigo fading toward teal, pricked
+   with dotted stars). The star tile is sparse and faint so white text on
+   top keeps its contrast. .ks-night-sky is the header's flatter version. */
+.ks-banner-ikat {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%23F4E7C3'%3E%3Ccircle cx='12' cy='14' r='.9' fill-opacity='.35'/%3E%3Ccircle cx='58' cy='40' r='.7' fill-opacity='.25'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='.3'/%3E%3Ccircle cx='124' cy='58' r='.8' fill-opacity='.28'/%3E%3Ccircle cx='30' cy='72' r='.7' fill-opacity='.22'/%3E%3Ccircle cx='80' cy='78' r='.9' fill-opacity='.25'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(180deg, #0E2036 0%, var(--ks-indigo) 55%, #17394A 100%);
+}
+.ks-night-sky {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%23F4E7C3'%3E%3Ccircle cx='12' cy='14' r='.9' fill-opacity='.35'/%3E%3Ccircle cx='58' cy='40' r='.7' fill-opacity='.25'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='.3'/%3E%3Ccircle cx='124' cy='58' r='.8' fill-opacity='.28'/%3E%3Ccircle cx='30' cy='72' r='.7' fill-opacity='.22'/%3E%3Ccircle cx='80' cy='78' r='.9' fill-opacity='.25'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 180px 116px;
+}
+
+/* Section label in spaced serif capitals, the way the reel titles its
+   scenes. Indic scripts have no capitals and break up when tracked. */
+.ks-eyebrow {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+}
+html:not([lang="en"]) .ks-eyebrow {
+  letter-spacing: 0.02em;
+}
+
+/* Gond creeper: a thin stem with alternating dotted leaves. */
 .ks-frieze {
-  height: 18px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='18' viewBox='0 0 36 18'%3E%3Cpath d='M0 9 Q9 2 18 9 T36 9' fill='none' stroke='%23C4552D' stroke-width='1.1'/%3E%3Ccircle cx='9' cy='5.2' r='1.6' fill='%23132A45'/%3E%3Ccircle cx='27' cy='12.8' r='1.6' fill='%23132A45'/%3E%3C/svg%3E");
+  height: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='22' viewBox='0 0 48 22'%3E%3Cpath d='M0 11 Q12 3 24 11 T48 11' fill='none' stroke='%23132A45' stroke-opacity='.45' stroke-width='1'/%3E%3Cg transform='translate(12 7) rotate(-35)'%3E%3Cpath d='M0 0C3-3.5 3.5-8 0-12C-3.5-8-3-3.5 0 0Z' fill='%23C4552D'/%3E%3Ccircle cy='-4' r='.7' fill='%23F4EFE6'/%3E%3Ccircle cy='-7.5' r='.7' fill='%23F4EFE6'/%3E%3C/g%3E%3Cg transform='translate(36 15) rotate(145)'%3E%3Cpath d='M0 0C3-3.5 3.5-8 0-12C-3.5-8-3-3.5 0 0Z' fill='%230F5B4E'/%3E%3Ccircle cy='-4' r='.7' fill='%23F4EFE6'/%3E%3Ccircle cy='-7.5' r='.7' fill='%23F4EFE6'/%3E%3C/g%3E%3Ccircle cx='24' cy='17' r='1' fill='%23D4A017'/%3E%3Ccircle cx='0' cy='5' r='1' fill='%23D4A017'/%3E%3Ccircle cx='48' cy='5' r='1' fill='%23D4A017'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
-  background-size: 36px 18px;
-  opacity: .85;
+  background-size: 48px 22px;
+  background-position: center;
+  opacity: .8;
 }
 
 /* A faint diamond-lattice texture (the pattern from the brand board's
@@ -53,7 +86,7 @@
    board itself warns against busy backgrounds, so this reads as a subtle
    woven-textile ground, not a loud repeating graphic. */
 .ks-lattice {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cpath d='M22 3 L41 22 L22 41 L3 22 Z' fill='none' stroke='%23D4A017' stroke-opacity='0.4' stroke-width='1'/%3E%3Ccircle cx='22' cy='22' r='1.4' fill='%23C4552D' fill-opacity='0.4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23A8432A' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M-20 20a20 20 0 0 1 40 0M20 20a20 20 0 0 1 40 0M0 40a20 20 0 0 1 40 0'/%3E%3Cpath d='M-13 20a13 13 0 0 1 26 0M27 20a13 13 0 0 1 26 0M7 40a13 13 0 0 1 26 0'/%3E%3Cpath d='M-6 20a6 6 0 0 1 12 0M34 20a6 6 0 0 1 12 0M14 40a6 6 0 0 1 12 0'/%3E%3C/g%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 44px 44px;
 }
@@ -76,10 +109,11 @@
 .ks-motif-frame::after {
   content: '';
   display: block;
-  height: 9px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='9' viewBox='0 0 30 9'%3E%3Cpath d='M0 4.5 Q7.5 1 15 4.5 T30 4.5' fill='none' stroke='%23C4552D' stroke-width='1'/%3E%3Ccircle cx='7.5' cy='2.6' r='1' fill='%23132A45'/%3E%3Ccircle cx='22.5' cy='6.4' r='1' fill='%23132A45'/%3E%3C/svg%3E");
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='22' viewBox='0 0 48 22'%3E%3Cpath d='M0 11 Q12 3 24 11 T48 11' fill='none' stroke='%23132A45' stroke-opacity='.45' stroke-width='1'/%3E%3Cg transform='translate(12 7) rotate(-35)'%3E%3Cpath d='M0 0C3-3.5 3.5-8 0-12C-3.5-8-3-3.5 0 0Z' fill='%23C4552D'/%3E%3Ccircle cy='-4' r='.7' fill='%23F4EFE6'/%3E%3Ccircle cy='-7.5' r='.7' fill='%23F4EFE6'/%3E%3C/g%3E%3Cg transform='translate(36 15) rotate(145)'%3E%3Cpath d='M0 0C3-3.5 3.5-8 0-12C-3.5-8-3-3.5 0 0Z' fill='%230F5B4E'/%3E%3Ccircle cy='-4' r='.7' fill='%23F4EFE6'/%3E%3Ccircle cy='-7.5' r='.7' fill='%23F4EFE6'/%3E%3C/g%3E%3Ccircle cx='24' cy='17' r='1' fill='%23D4A017'/%3E%3Ccircle cx='0' cy='5' r='1' fill='%23D4A017'/%3E%3Ccircle cx='48' cy='5' r='1' fill='%23D4A017'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
-  background-size: 30px 9px;
+  background-size: 26px 12px;
+  opacity: .75;
 }
 .ks-motif-frame > .ks-motif-frame-body {
   padding: 18px 16px;
@@ -94,6 +128,284 @@
   border-radius: 50%;
   background: var(--ks-clay);
   vertical-align: middle;
+}
+
+/* ── Gond scene kit ─────────────────────────────────────────
+   Layout pieces after Gond paintings: full-width bands of sky and ground
+   stacked like the layers of a painting, scalloped cloud edges between
+   them, panels outlined in a row of dots, and icons in dotted medallions.
+   The art stays at the edges; text always sits on a calm, flat colour. */
+
+/* A band that breaks out of the 800px column to the full window width. */
+.ks-bleed {
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+html, body {
+  overflow-x: clip;
+}
+
+/* Scalloped edges: a row of half-circle "cloud" bumps cut into a band. */
+.ks-scallop {
+  --s: 12px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--s)) no-repeat,
+    radial-gradient(circle var(--s) at 50% 0, #000 98%, #0000 101%) bottom / calc(2 * var(--s)) var(--s) repeat-x;
+  mask:
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--s)) no-repeat,
+    radial-gradient(circle var(--s) at 50% 0, #000 98%, #0000 101%) bottom / calc(2 * var(--s)) var(--s) repeat-x;
+}
+.ks-scallop-top {
+  --s: 12px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--s)) no-repeat,
+    radial-gradient(circle var(--s) at 50% 100%, #000 98%, #0000 101%) top / calc(2 * var(--s)) var(--s) repeat-x;
+  mask:
+    linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--s)) no-repeat,
+    radial-gradient(circle var(--s) at 50% 100%, #000 98%, #0000 101%) top / calc(2 * var(--s)) var(--s) repeat-x;
+}
+
+/* The painted scene: night sky, clouds, trees either side, hills below. */
+.ks-scene {
+  /* Ink for content on the sky; the day skies swap these for dark ink. */
+  --scene-ink: #fff;
+  --scene-ink-soft: rgba(255,255,255,0.8);
+  --scene-accent: var(--ks-turmeric);
+  --scene-track: rgba(255,255,255,0.25);
+  --scene-ghost-bg: rgba(19,42,69,0.45);
+  --scene-ghost-border: rgba(244,231,195,0.6);
+  --scene-ink-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--scene-ink);
+  text-align: center;
+  padding: clamp(40px, 8vw, 72px) 20px 118px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%23F4E7C3'%3E%3Ccircle cx='12' cy='14' r='.9' fill-opacity='.35'/%3E%3Ccircle cx='58' cy='40' r='.7' fill-opacity='.25'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='.3'/%3E%3Ccircle cx='124' cy='58' r='.8' fill-opacity='.28'/%3E%3Ccircle cx='30' cy='72' r='.7' fill-opacity='.22'/%3E%3Ccircle cx='80' cy='78' r='.9' fill-opacity='.25'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(180deg, var(--ks-night) 0%, #1B3156 50%, #24495E 100%);
+}
+/* Day skies, picked by the local time (skyTimeFor in GondArt.tsx). */
+.ks-sky-morning {
+  --scene-ink: var(--ks-earth);
+  --scene-ink-soft: rgba(19,42,69,0.78);
+  --scene-accent: var(--ks-rust);
+  --scene-track: rgba(19,42,69,0.18);
+  --scene-ghost-bg: rgba(252,247,236,0.7);
+  --scene-ghost-border: rgba(19,42,69,0.4);
+  --scene-ink-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%23A8432A'%3E%3Ccircle cx='12' cy='14' r='0.9' fill-opacity='0.18'/%3E%3Ccircle cx='58' cy='40' r='0.7' fill-opacity='0.14'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='0.16'/%3E%3Ccircle cx='124' cy='58' r='0.8' fill-opacity='0.14'/%3E%3Ccircle cx='30' cy='72' r='0.7' fill-opacity='0.12'/%3E%3Ccircle cx='80' cy='78' r='0.9' fill-opacity='0.14'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(180deg, #F2B880 0%, #F6CF92 45%, #F8E2B4 100%);
+}
+.ks-sky-afternoon {
+  --scene-ink: var(--ks-earth);
+  --scene-ink-soft: rgba(19,42,69,0.78);
+  --scene-accent: var(--ks-rust);
+  --scene-track: rgba(19,42,69,0.18);
+  --scene-ghost-bg: rgba(252,247,236,0.7);
+  --scene-ghost-border: rgba(19,42,69,0.4);
+  --scene-ink-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%231F5A57'%3E%3Ccircle cx='12' cy='14' r='0.9' fill-opacity='0.16'/%3E%3Ccircle cx='58' cy='40' r='0.7' fill-opacity='0.12'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='0.14'/%3E%3Ccircle cx='124' cy='58' r='0.8' fill-opacity='0.12'/%3E%3Ccircle cx='30' cy='72' r='0.7' fill-opacity='0.1'/%3E%3Ccircle cx='80' cy='78' r='0.9' fill-opacity='0.12'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(180deg, #A9D3C9 0%, #CBE2D2 50%, #F1E6C6 100%);
+}
+.ks-sky-evening {
+  --scene-ink: #fff;
+  --scene-ink-soft: rgba(255,255,255,0.86);
+  --scene-accent: #FCEFD2;
+  --scene-track: rgba(255,255,255,0.3);
+  --scene-ghost-bg: rgba(90,30,18,0.35);
+  --scene-ghost-border: rgba(252,239,210,0.65);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%23F4E7C3'%3E%3Ccircle cx='12' cy='14' r='0.9' fill-opacity='0.25'/%3E%3Ccircle cx='58' cy='40' r='0.7' fill-opacity='0.2'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='0.22'/%3E%3Ccircle cx='124' cy='58' r='0.8' fill-opacity='0.2'/%3E%3Ccircle cx='30' cy='72' r='0.7' fill-opacity='0.16'/%3E%3Ccircle cx='80' cy='78' r='0.9' fill-opacity='0.2'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(180deg, #8E3522 0%, var(--ks-rust) 45%, #B9502E 100%);
+}
+/* Pulled up under the header's scalloped edge so the two skies meet. */
+.ks-scene-top {
+  margin-top: -30px;
+  padding-top: calc(clamp(40px, 8vw, 72px) + 6px);
+}
+.ks-scene-compact.ks-scene-top {
+  padding-top: 32px;
+}
+.ks-scene-content {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.ks-scene-night {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 620px);
+  height: auto;
+  z-index: 0;
+}
+.ks-scene-cloud {
+  position: absolute;
+  z-index: 1;
+  width: clamp(84px, 15vw, 150px);
+  height: auto;
+  opacity: .92;
+}
+.ks-scene-cloud-l { top: 16%; left: max(-26px, calc(50% - 600px)); }
+.ks-scene-cloud-r { top: 6%; right: max(-18px, calc(50% - 470px)); width: clamp(70px, 11vw, 112px); }
+.ks-scene-flyer { position: absolute; z-index: 1; top: 30%; left: calc(50% + 250px); width: 54px; height: auto; }
+.ks-scene-tree {
+  position: absolute;
+  bottom: 22px;
+  z-index: 1;
+  width: clamp(120px, 21vw, 240px);
+  height: auto;
+}
+.ks-scene-tree-l { left: max(-34px, calc(50% - 660px)); }
+.ks-scene-tree-r { right: max(-34px, calc(50% - 660px)); }
+.ks-scene-hills {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 100%;
+  height: 96px;
+}
+.ks-scene-compact {
+  text-align: left;
+  padding: 26px 20px 84px;
+}
+.ks-scene-compact .ks-scene-hills { height: 64px; }
+.ks-scene-compact .ks-scene-tree { width: clamp(96px, 15vw, 170px); bottom: 12px; }
+.ks-scene-compact .ks-scene-cloud-l { top: auto; bottom: 64px; left: auto; right: max(120px, calc(50% - 300px)); width: 70px; opacity: .7; }
+.ks-scene-compact .ks-scene-cloud-r { top: 14px; right: max(64px, calc(50% - 400px)); width: 62px; opacity: .75; }
+.ks-scene-compact .ks-scene-content { max-width: 760px; }
+@media (max-width: 700px) {
+  .ks-scene-flyer { display: none; }
+}
+@media (max-width: 640px) {
+  .ks-scene { padding-bottom: 128px; }
+  .ks-scene-tree-l { width: 92px; left: -26px; }
+  .ks-scene-tree-r { width: 100px; right: -26px; }
+  .ks-scene-cloud-l { top: 10px; left: -24px; width: 72px; opacity: .55; }
+  .ks-scene-cloud-r { top: 4px; right: -12px; width: 58px; opacity: .55; }
+  .ks-scene-compact { padding-bottom: 80px; }
+  .ks-scene-compact .ks-scene-tree-l { display: none; }
+  .ks-scene-compact .ks-scene-tree-r { width: 88px; right: -18px; }
+  .ks-scene-compact .ks-scene-cloud-l { display: none; }
+  .ks-scene-compact .ks-scene-cloud-r { right: 70px; top: 10px; width: 50px; }
+  /* A smaller sun between the greeting and the "Take a tour" button. */
+  .ks-scene-compact .ks-scene-sun { width: 160px; left: calc(55% - 129px); top: 21px; transform: none; }
+  .ks-scene-compact .ks-sun-birds { display: none; }
+}
+
+/* Full-width colour bands that sit between scenes. */
+.ks-band {
+  position: relative;
+  padding: 34px 20px 44px;
+}
+.ks-band-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.ks-band-teal {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='14' viewBox='0 0 40 14'%3E%3Cpath d='M0 7q5-5 10 0t10 0t10 0t10 0' fill='none' stroke='%23F4E7C3' stroke-opacity='.09' stroke-width='1.2'/%3E%3C/svg%3E"), var(--ks-teal);
+  color: #F4E7C3;
+}
+.ks-band-rust {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23F4E7C3' stroke-opacity='.1' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M15 15a3 3 0 1 1 3 3a6 6 0 1 1 -6 -6'/%3E%3Cpath d='M45 45a3 3 0 1 1 3 3a6 6 0 1 1 -6 -6'/%3E%3C/g%3E%3Cg fill='%23F4E7C3' fill-opacity='.12'%3E%3Ccircle cx='45' cy='14' r='1'/%3E%3Ccircle cx='14' cy='46' r='1'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(180deg, #8E3A26 0%, var(--ks-rust) 100%);
+  color: #fff;
+}
+/* Cream fish-scale waves, the foreground strip at the foot of a painting. */
+.ks-scales-strip {
+  height: 64px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23A8432A' stroke-opacity='.55' stroke-width='1'%3E%3Cpath d='M-20 20a20 20 0 0 1 40 0M20 20a20 20 0 0 1 40 0M0 40a20 20 0 0 1 40 0'/%3E%3Cpath d='M-13 20a13 13 0 0 1 26 0M27 20a13 13 0 0 1 26 0M7 40a13 13 0 0 1 26 0'/%3E%3Cpath d='M-6 20a6 6 0 0 1 12 0M34 20a6 6 0 0 1 12 0M14 40a6 6 0 0 1 12 0'/%3E%3C/g%3E%3C/svg%3E"), #F1E3C4;
+  background-size: 34px 34px;
+  background-position: center bottom;
+}
+
+/* Section headings: serif, a leaf sprig in front, a dotted rule after. */
+.ks-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ks-earth);
+  margin-bottom: 14px;
+}
+.ks-section-title::before {
+  content: '';
+  flex: 0 0 24px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='14' viewBox='0 0 24 14'%3E%3Cpath d='M3 7h19' stroke='%23A8432A' stroke-width='1.2'/%3E%3Cpath d='M9 7C10 3 14 1 17 2C15 5 12 7 9 7Z' fill='%23C4552D'/%3E%3Cpath d='M13 7C14 11 18 13 21 12C19 9 16 7 13 7Z' fill='%232E8A74'/%3E%3Ccircle cx='3' cy='7' r='2' fill='%23E0A526'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+.ks-section-title::after {
+  content: '';
+  flex: 1 1 auto;
+  min-width: 20px;
+  border-bottom: 2px dotted rgba(168, 67, 42, 0.28);
+  transform: translateY(2px);
+}
+.ks-section-title.is-center {
+  justify-content: center;
+  text-align: center;
+}
+.ks-section-title.is-center::after {
+  flex: 0 0 24px;
+  height: 14px;
+  border: none;
+  transform: scaleX(-1);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='14' viewBox='0 0 24 14'%3E%3Cpath d='M3 7h19' stroke='%23A8432A' stroke-width='1.2'/%3E%3Cpath d='M9 7C10 3 14 1 17 2C15 5 12 7 9 7Z' fill='%23C4552D'/%3E%3Cpath d='M13 7C14 11 18 13 21 12C19 9 16 7 13 7Z' fill='%232E8A74'/%3E%3Ccircle cx='3' cy='7' r='2' fill='%23E0A526'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+.ks-band-teal .ks-section-title,
+.ks-band-rust .ks-section-title {
+  color: #F4E7C3;
+}
+
+/* Panels: a card outlined inside by a row of dots, as Gond painters
+   outline every shape. --accent tints the dots. */
+.ks-panel,
+.ks-tile {
+  --accent: var(--ks-rust);
+  position: relative;
+  background: var(--ks-ivory);
+  border: 1px solid var(--ks-border);
+  border-radius: 16px;
+}
+.ks-panel::after,
+.ks-tile::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.5px dotted color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 12px;
+  pointer-events: none;
+}
+/* Tiles add a concentric-ring "sun" in one corner. */
+.ks-tile {
+  overflow: hidden;
+}
+.ks-tile::before {
+  content: '';
+  position: absolute;
+  top: -34px;
+  right: -34px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, color-mix(in srgb, var(--accent) 26%, transparent) 0 2px, transparent 2px 6px);
+  pointer-events: none;
+}
+
+/* An icon in a soft disc ringed with dots. */
+.ks-medallion {
+  --accent: var(--ks-rust);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--ks-ivory));
+  outline: 2px dotted color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 3px;
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -112,10 +424,9 @@ body {
   font-family: var(--font-body);
   /* Digits keep one width, so counters and prices don't jump as they change. */
   font-variant-numeric: tabular-nums;
-  /* A faint diamond-lattice weave (same motif as .ks-lattice) under the
-     solid page colour — a whisper of woven texture across every screen,
-     not just the surfaces that already opt into .ks-lattice explicitly. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cpath d='M22 3 L41 22 L22 41 L3 22 Z' fill='none' stroke='%23D4A017' stroke-opacity='0.22' stroke-width='1'/%3E%3Ccircle cx='22' cy='22' r='1.4' fill='%23C4552D' fill-opacity='0.22'/%3E%3C/svg%3E");
+  /* Faint concentric fish-scales, the ground pattern of Gond water and
+     earth, at a whisper so text on the page is never fighting it. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%23A8432A' stroke-opacity='.07' stroke-width='1'%3E%3Cpath d='M-20 20a20 20 0 0 1 40 0M20 20a20 20 0 0 1 40 0M0 40a20 20 0 0 1 40 0'/%3E%3Cpath d='M-13 20a13 13 0 0 1 26 0M27 20a13 13 0 0 1 26 0M7 40a13 13 0 0 1 26 0'/%3E%3Cpath d='M-6 20a6 6 0 0 1 12 0M34 20a6 6 0 0 1 12 0M14 40a6 6 0 0 1 12 0'/%3E%3C/g%3E%3C/svg%3E");
   background-color: var(--ks-paper);
   color: var(--ks-earth);
   min-height: 100vh;
@@ -145,15 +456,17 @@ p {
    press-down on click, a lift on hover for pointer devices, and a
    visible focus ring for keyboard users. Respects reduced-motion. */
 button {
-  transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), filter 160ms ease;
 }
 button:not(:disabled) {
   cursor: pointer;
 }
 button:not(:disabled):active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
-@media (hover: hover) {
+/* Hover only for real pointers: touch screens fire :hover on tap and leave
+   it stuck, which on a phone-first app made cards look "selected". */
+@media (hover: hover) and (pointer: fine) {
   button:not(:disabled):hover {
     filter: brightness(1.06);
   }
@@ -162,9 +475,9 @@ button:not(:disabled):active {
   }
 }
 a {
-  transition: filter 0.15s ease, transform 0.15s ease;
+  transition: filter 160ms ease, transform 160ms var(--ease-out);
 }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
   outline: 2px solid var(--ks-turmeric);
   outline-offset: 2px;
 }
@@ -174,8 +487,209 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .ks-pop-in {
-  animation: ks-pop-in 0.28s ease-out;
+  animation: ks-pop-in 240ms var(--ease-out);
 }
+
+/* One entrance per screen section, staggered by a few tens of ms so the
+   dashboard settles in order instead of popping in all at once. Short on
+   purpose: this screen is opened many times a day. */
+@keyframes ks-rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.ks-rise > * {
+  animation: ks-rise 260ms var(--ease-out) backwards;
+}
+.ks-rise > *:nth-child(2) { animation-delay: 30ms; }
+.ks-rise > *:nth-child(3) { animation-delay: 60ms; }
+.ks-rise > *:nth-child(4) { animation-delay: 85ms; }
+.ks-rise > *:nth-child(5) { animation-delay: 105ms; }
+.ks-rise > *:nth-child(n+6) { animation-delay: 120ms; }
+
+/* Pressable cards: a felt response on press, a lift only for real pointers. */
+.ks-press {
+  transition: transform 160ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+.ks-press:active {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .ks-press:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(19, 42, 69, 0.1);
+  }
+}
+
+/* ── Bottom tab bar + AI coach button ──────────────────────── */
+.ks-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='90' viewBox='0 0 140 90'%3E%3Cg fill='%23F4E7C3'%3E%3Ccircle cx='12' cy='14' r='.9' fill-opacity='.35'/%3E%3Ccircle cx='58' cy='40' r='.7' fill-opacity='.25'/%3E%3Ccircle cx='96' cy='10' r='1' fill-opacity='.3'/%3E%3Ccircle cx='124' cy='58' r='.8' fill-opacity='.28'/%3E%3Ccircle cx='30' cy='72' r='.7' fill-opacity='.22'/%3E%3Ccircle cx='80' cy='78' r='.9' fill-opacity='.25'/%3E%3C/g%3E%3C/svg%3E"), var(--ks-earth);
+  padding: 16px 0 calc(10px + env(safe-area-inset-bottom));
+  --s: 8px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--s)) no-repeat,
+    radial-gradient(circle var(--s) at 50% 100%, #000 98%, #0000 101%) top / calc(2 * var(--s)) var(--s) repeat-x;
+  mask:
+    linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--s)) no-repeat,
+    radial-gradient(circle var(--s) at 50% 100%, #000 98%, #0000 101%) top / calc(2 * var(--s)) var(--s) repeat-x;
+}
+.ks-tabbar-inner {
+  display: flex;
+  width: 100%;
+  max-width: 800px;
+}
+.ks-tab {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-height: 48px;
+  padding: 4px 0;
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 160ms ease, transform 160ms var(--ease-out);
+}
+.ks-tab:active {
+  transform: scale(0.94);
+}
+.ks-tab-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  transition: background-color 200ms var(--ease-out);
+}
+.ks-tab[data-active] {
+  color: var(--ks-turmeric);
+  font-weight: 700;
+}
+.ks-tab[data-active] .ks-tab-icon {
+  background: rgba(212, 160, 23, 0.16);
+  outline: 1.5px dotted rgba(224, 165, 38, 0.7);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ks-tab:not([data-active]):hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+.ks-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  z-index: 101;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--ks-turmeric);
+  color: var(--ks-earth);
+  box-shadow: 0 8px 22px rgba(19, 42, 69, 0.35);
+}
+
+/* ── Post-login guide (driver.js), in the brand's palette ──── */
+.ks-tour-trigger {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+/* On the light morning and afternoon skies the glassy white pill vanishes. */
+.ks-sky-morning .ks-tour-trigger,
+.ks-sky-afternoon .ks-tour-trigger {
+  color: var(--ks-earth);
+  border-color: rgba(19, 42, 69, 0.3);
+  background: rgba(252, 247, 236, 0.7);
+}
+html[dir="rtl"] .ks-tour-trigger {
+  right: auto;
+  left: 16px;
+}
+.driver-popover.ks-tour {
+  background: var(--ks-ivory);
+  color: var(--ks-earth);
+  border-radius: 16px;
+  padding: 18px 18px 14px;
+  max-width: min(340px, calc(100vw - 32px));
+  box-shadow: 0 18px 50px rgba(11, 26, 44, 0.35);
+  border-top: 4px solid var(--ks-turmeric);
+  font-family: var(--font-body);
+}
+.driver-popover.ks-tour .driver-popover-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ks-earth);
+  padding-right: 24px;
+}
+.driver-popover.ks-tour .driver-popover-description {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #33475c;
+  margin-top: 6px;
+}
+.driver-popover.ks-tour .driver-popover-progress-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ks-muted);
+}
+.driver-popover.ks-tour .driver-popover-footer {
+  margin-top: 16px;
+  align-items: center;
+}
+.driver-popover.ks-tour .driver-popover-footer button {
+  text-shadow: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-height: 38px;
+  border: 1px solid var(--ks-border);
+  background: #fff;
+  color: var(--ks-earth);
+}
+.driver-popover.ks-tour .driver-popover-footer .driver-popover-next-btn {
+  background: var(--ks-earth);
+  border-color: var(--ks-earth);
+  color: #fff;
+}
+.driver-popover.ks-tour .driver-popover-close-btn {
+  width: 36px;
+  height: 36px;
+  color: var(--ks-muted);
+  font-size: 20px;
+}
+.driver-popover.ks-tour .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: var(--ks-ivory); }
+.driver-popover.ks-tour .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: var(--ks-turmeric); }
+.driver-popover.ks-tour .driver-popover-arrow-side-left.driver-popover-arrow { border-left-color: var(--ks-ivory); }
+.driver-popover.ks-tour .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: var(--ks-ivory); }
 
 @keyframes ks-spin {
   to { transform: rotate(360deg); }
@@ -203,9 +717,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   animation: ks-shimmer 1.4s ease infinite;
 }
 
+@keyframes ks-twinkle {
+  0%, 100% { fill-opacity: .45; }
+  50% { fill-opacity: .9; }
+}
+.ks-twinkle {
+  animation: ks-twinkle 4.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  button, a, .ks-pop-in {
+  .ks-twinkle {
+    animation: none !important;
+  }
+  button, a, .ks-pop-in, .ks-press, .ks-tab, .ks-tab-icon {
     transition: none !important;
+    animation: none !important;
+  }
+  .ks-rise > * {
     animation: none !important;
   }
   .ks-spinner, .ks-skeleton {
