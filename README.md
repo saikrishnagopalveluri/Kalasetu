@@ -29,6 +29,31 @@ The assistant adapts to who the user is and what they are doing, rather than off
 
 Every API route that spends money (AI, images, payments) checks the Supabase session on the server, is rate limited per user, validates its input, and returns generic error messages.
 
+## Saathi Voice Agent (new for the Startup Buildathon)
+
+Many artisans can't comfortably read or type, especially in English. **Saathi Voice** (`/voice`, linked from the home screen) lets them just talk, in any of the 23 languages, and have the app do the work.
+
+1. **The artisan taps the mic and speaks.** The browser records the audio and re-encodes it as 16 kHz mono WAV ([`lib/wav.ts`](lib/wav.ts)), so every phone sends a format Gemini accepts.
+2. **Gemini listens to the audio directly.** There is no separate speech-to-text step: Gemini hears the question, writes down what it heard in the artisan's own script, and decides what to do.
+3. **Gemini function calling runs real tools** ([`lib/voiceAgent.ts`](lib/voiceAgent.ts)):
+
+   | Tool | What it does |
+   |---|---|
+   | `suggest_fair_price` | Exact price from material cost and hours worked, using the same maths as the Pricing Calculator ([`lib/fairPrice.ts`](lib/fairPrice.ts)). The model never invents a number. |
+   | `find_schemes` | Open government schemes, competitions and trade shows from the admin-approved list |
+   | `get_my_products` | The artisan's own products, and which still need a listing |
+   | `get_my_profile` | Their public catalogue link, ready to share on WhatsApp |
+   | `open_screen` | Opens Photoshoot, Listings, Catalogue, Schemes and other tools, from a fixed list of real pages |
+
+4. **It answers in the artisan's language, on screen and aloud.** The reply is spoken with **Gemini text-to-speech**, which can speak Indian languages many phones have no voice for, and falls back to the phone's own voice if Gemini is busy. Tool results appear as cards: a price breakdown with a "do not sell below" floor, scheme links with deadlines, the catalogue link with Copy and WhatsApp buttons, and an Open button for the right tool.
+
+Design choices:
+
+- **Read-only and scoped.** The tools only read the signed-in artisan's own rows, or public scheme listings, and never write. A misheard request can at worst show the wrong screen.
+- **Fast first.** The agent tries Gemini 3.1 Flash-Lite first (2 to 6 seconds in live tests), then Gemini 4 Hydrogen and Gemini 3.8 Flash, each with a 20 second limit, and stays on whichever model answered for the rest of that turn. At most 4 tool rounds per question.
+- **Typing always works too**, for anyone who can't or would rather not speak, and silence is caught before an AI call is spent on it.
+- **Tested.** `tests/voiceAgent.test.ts` covers the pricing maths, WAV encoding, the full function-calling loop (including passing Gemini's thought signatures back), tool failures, model fallback, filter-injection-safe scheme search, per-user data scoping, and both API routes.
+
 ## Google AI integration
 
 All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), which calls the Gemini API with a single key. Each feature uses Google first and keeps the older providers only as automatic fallbacks.
@@ -43,6 +68,7 @@ All AI goes through one server-only module, [`lib/gemini.ts`](lib/gemini.ts), wh
 | Story quality gate (7 scores) | **Gemini** with JSON output, validated on the server before a story can publish | `lib/storyEvaluator.ts` | Claude, then Groq |
 | Government Scheme Navigator | **Gemini** with JSON output reads official scheme pages and extracts title, type and deadline for admin review | `/api/admin/scrape-schemes`, scheme cron | Claude, then Groq |
 | Story translation | **Gemini** | `/api/story-translate` | Claude, then Groq |
+| Saathi Voice Agent | **Gemini** audio understanding and function calling, plus **Gemini TTS** (`gemini-3.8-flash-tts`) for spoken replies | `/api/voice-agent`, `/api/speak` | Next Gemini model; the phone's own voice for speech |
 | Bulk blog translation into 22 languages | **Gemma 4** (`gemma-4-26b-a4b-it`), the low-cost model for high-volume work | `/api/blog-translate`, daily blog cron | Gemini, Claude, Groq |
 
 How the layer works:
@@ -108,6 +134,7 @@ Set these in `.env.local` for local development, and in the Vercel project setti
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (safe for the browser) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only key that bypasses Row Level Security. Never expose to the client. |
 | `GEMINI_API_KEY` | Primary AI provider: Gemini, Nano Banana and Gemma (free key from Google AI Studio) |
+| `GEMINI_AGENT_MODEL`, `GEMINI_TTS_MODEL` | Optional overrides (comma-separated lists) for the voice agent and its speech. Defaults: `gemini-3.1-flash-lite,gemini-4-hydrogen,gemini-3.8-flash` and `gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts` |
 | `GEMINI_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMMA_MODEL` | Optional model overrides. `GEMINI_MODEL` takes a comma-separated list tried in order. Defaults: `gemini-4-hydrogen,gemini-3.1-flash-lite,gemini-3.8-flash`, `gemini-3.1-flash-image`, `gemma-4-26b-a4b-it` |
 | `ANTHROPIC_API_KEY` | First fallback AI text provider |
 | `GROQ_API_KEY` | Second fallback AI text provider |
@@ -134,6 +161,7 @@ Vitest suites in `tests/` cover:
 
 - **API routes:** auth, rate limiting, input validation, provider failure and success paths for `/api/ai`, `/api/photoshoot`, `/api/design-image`, `/api/story-evaluate`, `/api/story-publish`, `/api/story-translate`, `/api/referral`, and both webhook hooks.
 - **Payments:** Razorpay order creation charges the server-side price; verification rejects forged or mismatched signatures, unpaid orders, and wrong amounts, and grants the tier recorded on Razorpay's order rather than the one the client claims.
+- **Saathi Voice Agent:** fair-price maths, WAV encoding, the Gemini function-calling loop and its tools, model fallback, and the `/api/voice-agent` and `/api/speak` routes.
 - **Google AI layer:** Gemini, Nano Banana and Gemma requests, structured output, timeouts, and Gemini-first behaviour with fallback on every AI route.
 - **Core logic:** pricing, KalaWallet balance and atomic redemption, profile completeness, story-score validation, rate limiting, request parsing, and the image-provider fallback chain.
 - **Platform:** cron endpoint auth, robots.txt and sitemap, branding, and translation-file integrity across all 23 languages.

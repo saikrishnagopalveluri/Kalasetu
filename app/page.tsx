@@ -6,6 +6,7 @@ import { supabase, supabaseConfigured } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import LandingPage from '@/components/LandingPage'
 import { useLanguage } from '@/lib/LanguageProvider'
+import VoiceAgentBanner from '@/components/VoiceAgentBanner'
 import { useAskAI } from '@/lib/AskAIProvider'
 import type { TranslationKey } from '@/lib/translations'
 import ProductTour from '@/components/ProductTour'
@@ -355,6 +356,8 @@ function HomePageContent() {
           </div>
         </Link>
       </div>
+
+      <VoiceAgentBanner />
 
       {/* ── Quick actions ────────────────────────────────── */}
       <h2 style={{

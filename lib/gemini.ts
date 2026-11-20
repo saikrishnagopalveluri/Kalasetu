@@ -32,6 +32,9 @@ export const GEMINI_MODELS = {
   get gemma() {
     return process.env.GEMMA_MODEL || 'gemma-4-26b-a4b-it'
   },
+  get speech(): string[] {
+    return modelList(process.env.GEMINI_TTS_MODEL, ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'])
+  },
 }
 
 // Per model attempt. Short by default so an overloaded model hands over
@@ -120,7 +123,9 @@ export function toGeminiContents(messages: ChatMessage[]): Content[] {
   return contents
 }
 
-async function callGenerateContent(model: string, body: unknown, timeoutMs: number) {
+// Exported for callers that build their own request body (the voice
+// agent's function-calling loop).
+export async function callGenerateContent(model: string, body: unknown, timeoutMs: number) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new GeminiError('Gemini is not configured', 503)
 
@@ -138,13 +143,13 @@ async function callGenerateContent(model: string, body: unknown, timeoutMs: numb
   return res.json()
 }
 
-type GeminiResponse = {
+export type GeminiResponse = {
   candidates?: { content?: { parts?: Record<string, unknown>[] }; finishReason?: string }[]
   usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }
   promptFeedback?: { blockReason?: string }
 }
 
-function responseParts(json: GeminiResponse): Record<string, unknown>[] {
+export function responseParts(json: GeminiResponse): Record<string, unknown>[] {
   if (json.promptFeedback?.blockReason) {
     throw new GeminiError(`Gemini blocked the prompt: ${json.promptFeedback.blockReason}`, 422)
   }
@@ -246,4 +251,34 @@ export async function geminiImage({ prompt, refImageDataUrl }: { prompt: string;
     }
   }
   throw new GeminiError('Nano Banana returned no image', 502)
+}
+
+// Gemini text-to-speech: speaks the reply aloud in the artisan's language,
+// including languages many phones have no built-in voice for. The free
+// tier allows only a few requests a minute, so callers must treat a
+// failure as "use the device's own voice instead", never as an error.
+export async function geminiSpeech({ text, languageName }: { text: string; languageName?: string }): Promise<{ audioDataUrl: string; model: string }> {
+  const spoken = text.trim().slice(0, 800)
+  if (!spoken) throw new GeminiError('No text to speak', 400)
+  const instruction = `Say this in a warm, friendly${languageName ? ` ${languageName}` : ''} voice, exactly as written: ${spoken}`
+  let lastError: unknown
+  for (const model of GEMINI_MODELS.speech) {
+    try {
+      const json = (await callGenerateContent(model, {
+        contents: [{ role: 'user', parts: [{ text: instruction }] }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+        },
+      }, 30_000)) as GeminiResponse
+      for (const part of responseParts(json)) {
+        const inline = part.inlineData as { mimeType?: string; data?: string } | undefined
+        if (inline?.data) return { audioDataUrl: `data:${inline.mimeType ?? 'audio/wav'};base64,${inline.data}`, model }
+      }
+      throw new GeminiError(`Gemini ${model} returned no audio`, 502)
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw lastError
 }
