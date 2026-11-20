@@ -195,16 +195,69 @@ describe('runVoiceAgent', () => {
     expect(bodyOf(fetchMock, 1).contents[2].parts[0].functionResponse.response).toEqual({ error: 'This tool is unavailable right now.' })
   })
 
-  it('moves to the next Gemini model when the first is busy, then stays on it', async () => {
+  it('retries the fast model once when it is busy, since overload spikes pass quickly', async () => {
+    const fetchMock = stubFetch(httpError(503), textReply('REPLY: Hello.'))
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'hi', data: fakeData() })
+    expect([0, 1].map((i) => modelOf(fetchMock, i))).toEqual(['gemini-3.1-flash-lite', 'gemini-3.1-flash-lite'])
+    expect(result).toMatchObject({ reply: 'Hello.', model: 'gemini-3.1-flash-lite' })
+  })
+
+  it('moves to the next Gemini model when the fast one is busy twice, then stays on it', async () => {
     const fetchMock = stubFetch(
+      httpError(503),
       httpError(503),
       reply([{ functionCall: { name: 'get_my_products', args: {} } }]),
       textReply('REPLY: You have one saree.'),
     )
     const { runVoiceAgent } = await import('@/lib/voiceAgent')
     const result = await runVoiceAgent({ text: 'my products', data: fakeData() })
-    expect([0, 1, 2].map((i) => modelOf(fetchMock, i))).toEqual(['gemini-3.1-flash-lite', 'gemini-4-hydrogen', 'gemini-4-hydrogen'])
-    expect(result.model).toBe('gemini-4-hydrogen')
+    expect([0, 1, 2, 3].map((i) => modelOf(fetchMock, i))).toEqual(['gemini-3.1-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash-lite'])
+    expect(result.model).toBe('gemini-3.5-flash-lite')
+  })
+
+  it('retries the same model when it stalls after a tool call, instead of failing the answer', async () => {
+    const fetchMock = stubFetch(
+      reply([{ functionCall: { name: 'get_my_products', args: {} } }]),
+      httpError(503),
+      textReply('REPLY: You have one saree.'),
+    )
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'my products', data: fakeData() })
+    expect(result.reply).toBe('You have one saree.')
+    expect([0, 1, 2].map((i) => modelOf(fetchMock, i))).toEqual(['gemini-3.1-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.1-flash-lite'])
+  })
+
+  it('does not retry a model that stalled until timeout; moves straight on', async () => {
+    const timeout = Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' })
+    const fetchMock = vi.fn().mockRejectedValueOnce(timeout).mockResolvedValueOnce(textReply('REPLY: Hi.'))
+    vi.stubGlobal('fetch', fetchMock)
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    const result = await runVoiceAgent({ text: 'hi', data: fakeData() })
+    expect([0, 1].map((i) => modelOf(fetchMock, i))).toEqual(['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'])
+    expect(result.reply).toBe('Hi.')
+  })
+
+  it('caps every attempt at 12 seconds and the whole answer at 45 seconds', async () => {
+    const { attemptOrder, AGENT_ATTEMPT_TIMEOUT_MS, AGENT_TOTAL_BUDGET_MS } = await import('@/lib/voiceAgent')
+    expect(AGENT_ATTEMPT_TIMEOUT_MS).toBe(12_000)
+    expect(AGENT_TOTAL_BUDGET_MS).toBeLessThan(60_000)
+    expect(attemptOrder(['a', 'b'])).toEqual(['a', 'a', 'b'])
+    expect(attemptOrder([])).toEqual([])
+  })
+
+  it('stops trying once the overall time budget is spent', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const start = Date.now()
+    const fetchMock = vi.fn(async () => {
+      vi.setSystemTime(start + 44_500) // the first attempt eats almost the whole budget
+      return httpError(503)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { runVoiceAgent } = await import('@/lib/voiceAgent')
+    await expect(runVoiceAgent({ text: 'hi', data: fakeData() })).rejects.toBeTruthy()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 
   it('gives up after a bounded number of tool rounds', async () => {

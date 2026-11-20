@@ -12,13 +12,19 @@ import { languageName } from './languages'
 import { BRAND } from './brand'
 
 export const MAX_AGENT_STEPS = 4
-const AGENT_TIMEOUT_MS = 20_000
+// Per attempt. Healthy calls finish in 2-10 s (measured live); a call
+// past this has stalled, and a retry is faster than waiting it out.
+export const AGENT_ATTEMPT_TIMEOUT_MS = 12_000
+// For the whole answer, so it either finishes or fails cleanly well
+// before the route's 60 s platform limit cuts it off mid-reply.
+export const AGENT_TOTAL_BUDGET_MS = 45_000
 
-// A voice reply has to come back in seconds, so the agent tries the
-// fastest reliable tool-calling model first (measured live: Flash-Lite
-// answers in 2-6 s while the larger models were often overloaded), then
-// the stronger models. Overridable from Vercel settings.
-const DEFAULT_AGENT_MODELS = ['gemini-3.1-flash-lite', 'gemini-4-hydrogen', 'gemini-3.8-flash']
+// A voice reply has to come back in seconds, so the agent uses the fast
+// "lite" models, which were the ones still answering tool calls when the
+// larger models were overloaded (measured live on 20 Nov 2026: 3.5
+// Flash-Lite answered 3 of 3, 3.8 Flash and Flash latest mostly 503).
+// Overridable from Vercel settings.
+const DEFAULT_AGENT_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-4-hydrogen']
 export function agentModels(): string[] {
   const list = (process.env.GEMINI_AGENT_MODEL ?? '').split(',').map((m) => m.trim()).filter(Boolean)
   return list.length > 0 ? list : DEFAULT_AGENT_MODELS
@@ -219,11 +225,30 @@ export function parseAgentText(text: string): { heard: string | null; reply: str
   return { heard, reply: reply.replace(/\s*—\s*/g, ', ') }
 }
 
-async function agentStep(models: string[], body: Record<string, unknown>): Promise<{ json: GeminiResponse; model: string }> {
-  let lastError: unknown
-  for (const model of models) {
+// Gemini models are sometimes briefly overloaded (503) or stall. Each step
+// gives the first model a second chance, since these spikes pass in
+// seconds, before moving on to the next model. Every attempt is capped by
+// what is left of the overall budget.
+export function attemptOrder(models: string[]): string[] {
+  return models.length > 0 ? [models[0], ...models] : []
+}
+
+function isTimeout(err: unknown): boolean {
+  return err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError' || /aborted due to timeout/i.test(err.message))
+}
+
+async function agentStep(models: string[], body: Record<string, unknown>, deadline: number): Promise<{ json: GeminiResponse; model: string }> {
+  let lastError: unknown = new Error('voiceAgent: no model available')
+  const order = attemptOrder(models)
+  for (let i = 0; i < order.length; i++) {
+    const model = order[i]
+    // The retry is for a quick "busy" answer. A model that just stalled
+    // for the full attempt time is unlikely to recover on the spot.
+    if (i === 1 && isTimeout(lastError)) continue
+    const remaining = deadline - Date.now()
+    if (remaining < 1_000) break
     try {
-      return { json: (await callGenerateContent(model, body, AGENT_TIMEOUT_MS)) as GeminiResponse, model }
+      return { json: (await callGenerateContent(model, body, Math.min(AGENT_ATTEMPT_TIMEOUT_MS, remaining))) as GeminiResponse, model }
     } catch (err) {
       lastError = err
       console.error(`voiceAgent: ${model} failed:`, err instanceof Error ? err.message : err)
@@ -248,6 +273,7 @@ export async function runVoiceAgent(input: AgentInput): Promise<AgentResult> {
   const actions: AgentAction[] = []
   const toolsUsed: string[] = []
   let models = agentModels()
+  const deadline = Date.now() + AGENT_TOTAL_BUDGET_MS
 
   for (let step = 0; step < MAX_AGENT_STEPS; step++) {
     const { json, model } = await agentStep(models, {
@@ -255,7 +281,7 @@ export async function runVoiceAgent(input: AgentInput): Promise<AgentResult> {
       contents,
       tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
       generationConfig: { maxOutputTokens: 4096 },
-    })
+    }, deadline)
     // Stay on the model that answered for the rest of this conversation
     // turn: its thought signatures only make sense to the same model.
     models = [model]
