@@ -66,11 +66,11 @@ function SaathiInner() {
         {t('saathi.myImpact')}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 26 }}>
-        <StatCard n={data?.stats.empoweredCount ?? '—'} labelKey="saathi.stat.empowered" />
-        <StatCard n={data ? `₹${data.stats.rewardsEarnedRupees}` : '—'} labelKey="saathi.stat.rewardsEarned" />
-        <StatCard n={data?.stats.activeCount ?? '—'} labelKey="saathi.stat.activeArtisans" />
-        <StatCard n={data?.stats.totalProducts ?? '—'} labelKey="saathi.stat.productsDigitised" />
-        <StatCard n={data?.stats.cataloguesCreated ?? '—'} labelKey="saathi.stat.cataloguesCreated" />
+        <StatCard n={data?.stats.empoweredCount ?? '…'} labelKey="saathi.stat.empowered" />
+        <StatCard n={data ? `₹${data.stats.rewardsEarnedRupees}` : '…'} labelKey="saathi.stat.rewardsEarned" />
+        <StatCard n={data?.stats.activeCount ?? '…'} labelKey="saathi.stat.activeArtisans" />
+        <StatCard n={data?.stats.totalProducts ?? '…'} labelKey="saathi.stat.productsDigitised" />
+        <StatCard n={data?.stats.cataloguesCreated ?? '…'} labelKey="saathi.stat.cataloguesCreated" />
       </div>
 
       <div style={{

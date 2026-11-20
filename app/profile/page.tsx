@@ -407,7 +407,7 @@ function ProfileInner() {
         }}>
           <IconWallet size={20} style={{ color: 'var(--ks-clay)', marginBottom: 8 }} />
           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ks-earth)' }}>
-            {walletBalance === null ? '—' : walletBalance} {t('wallet.pointsUnit')}
+            {walletBalance === null ? '…' : walletBalance} {t('wallet.pointsUnit')}
           </div>
           <div style={{ fontSize: 10.5, color: 'var(--ks-muted)', marginTop: 2 }}>{t('profile.openWallet')} →</div>
         </Link>

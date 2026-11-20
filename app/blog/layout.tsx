@@ -3,10 +3,10 @@ import { BRAND } from '@/lib/brand'
 
 export const metadata: Metadata = {
   title: `Artisan Business & Digital Skills Blog | ${BRAND.name}`,
-  description: 'Practical guides on the digital transformation of artisans — pricing, marketing, AI tools, and government schemes for makers of traditional Indian handicrafts.',
+  description: 'Plain, practical guides for Indian artisans: pricing your work, selling on WhatsApp and Instagram, using AI tools, and the government schemes worth applying for.',
   openGraph: {
     title: `Artisan Business & Digital Skills Blog | ${BRAND.name}`,
-    description: 'Practical guides on the digital transformation of artisans — pricing, marketing, AI tools, and government schemes for makers of traditional Indian handicrafts.',
+    description: 'Plain, practical guides for Indian artisans: pricing your work, selling on WhatsApp and Instagram, using AI tools, and the government schemes worth applying for.',
   },
 }
 

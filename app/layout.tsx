@@ -19,7 +19,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || BRAND.fallbackUrl
 
 export const metadata: Metadata = {
   title: `${BRAND.name} | AI Creative Studio`,
-  description: `${BRAND.name} powers the digital transformation of artisans across India — AI tools for pricing, photos, and marketing that build artisan digital skills and help traditional handicrafts reach new buyers.`,
+  description: `${BRAND.name} helps artisans across India take their craft business online: fair prices, good product photos and listings in their own language. Practical digital skills for traditional handicrafts, without the jargon.`,
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/favicon-32.png', sizes: '32x32', type: 'image/png' }],
@@ -58,7 +58,7 @@ export default function RootLayout({
     name: BRAND.name,
     url: BASE_URL,
     logo: `${BASE_URL}/apple-touch-icon.png`,
-    description: 'AI-powered digital business platform helping traditional Indian artisans with pricing, product photography, marketing, and multilingual business tools.',
+    description: 'Simple tools that help traditional Indian artisans price their work, photograph it, market it and run their business in their own language.',
   }
 
   return (

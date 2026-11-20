@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${BRAND.name} | AI Creative Studio`,
     short_name: BRAND.name,
-    description: 'AI-powered digital business platform for traditional Indian artisans',
+    description: 'Business tools for Indian artisans, in their own language',
     start_url: '/',
     display: 'standalone',
     background_color: '#F4EFE6',

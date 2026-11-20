@@ -50,10 +50,10 @@ function WalletInner() {
           <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('wallet.balanceLabel')}</span>
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 700, marginBottom: 4 }}>
-          {transactions === null ? '—' : balance} <span style={{ fontSize: 17, fontWeight: 500 }}>{t('wallet.pointsUnit')}</span>
+          {transactions === null ? '…' : balance} <span style={{ fontSize: 17, fontWeight: 500 }}>{t('wallet.pointsUnit')}</span>
         </div>
         <div style={{ fontSize: 14, opacity: 0.85 }}>
-          {t('wallet.worthPrefix')} ₹{transactions === null ? '—' : balance}
+          {t('wallet.worthPrefix')} ₹{transactions === null ? '…' : balance}
         </div>
       </div>
 

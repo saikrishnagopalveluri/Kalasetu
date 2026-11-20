@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = `${data.name} | ${BRAND.name}`
   const description = data.description?.slice(0, 155)
-    || `${data.name}${data.material ? `, made of ${data.material}` : ''} — a handcrafted ${data.craft_type || 'product'} from an independent Indian artisan.`
+    || `${data.name}${data.material ? `, made of ${data.material}` : ''}. Handmade ${data.craft_type || 'craft'} by an independent artisan in India.`
 
   return {
     title,

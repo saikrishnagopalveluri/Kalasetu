@@ -336,7 +336,7 @@ function HomePageContent() {
           <IconWallet size={18} style={{ color: 'var(--ks-clay)' }} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ks-earth)' }}>
-              {walletBalance === null ? '—' : walletBalance}
+              {walletBalance === null ? '…' : walletBalance}
             </div>
             <div style={{ fontSize: 10, color: 'var(--ks-muted)' }}>{t('home.kalaPoints')}</div>
           </div>
