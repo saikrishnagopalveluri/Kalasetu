@@ -75,12 +75,14 @@ Many artisans can't comfortably read or type, especially in English. **Saathi Vo
    | `get_my_profile` | Their public catalogue link, ready to share on WhatsApp |
    | `open_screen` | Opens Photoshoot, Listings, Catalogue, Schemes and other tools, from a fixed list of real pages |
 
-4. **It answers in the artisan's language, on screen and aloud.** The reply is spoken with **Gemini text-to-speech**, which can speak Indian languages many phones have no voice for, and falls back to the phone's own voice if Gemini is busy. Tool results appear as cards: a price breakdown with a "do not sell below" floor, scheme links with deadlines, the catalogue link with Copy and WhatsApp buttons, and an Open button for the right tool.
+4. **It answers in the artisan's language, on screen and aloud.** The reply is spoken with the phone's own voice when it has one for that language, so speech starts at once. Otherwise **Gemini text-to-speech** reads it, since it can speak Indian languages many phones have no voice for. Tool results appear as cards: a price breakdown with a "do not sell below" floor, scheme links with deadlines, the catalogue link with Copy and WhatsApp buttons, and an Open button for the right tool.
 
 Design choices:
 
 - **Read-only and scoped.** The tools only read the signed-in artisan's own rows, or public scheme listings, and never write. A misheard request can at worst show the wrong screen.
-- **Fast first.** The agent tries Gemini 3.1 Flash-Lite first (2 to 6 seconds in live tests), then Gemini 4 Hydrogen and Gemini 3.8 Flash, each with a 20 second limit, and stays on whichever model answered for the rest of that turn. At most 4 tool rounds per question.
+- **Fast first.** The artisan's schemes, profile and products are loaded before Gemini is called, so most questions are answered in one call. The agent starts with Gemini 3.1 Flash-Lite and sends a backup request to the next Flash-Lite model if no reply has come after 3 seconds. Whichever answers first is used. If Gemini has not answered within 9 seconds, Groq takes over with the same tools and facts. In live tests answers took 3 to 11 seconds. At most 4 tool rounds per question.
+- **Phone voice first.** When the phone has a voice for the chosen language, the reply is spoken right away. Gemini text-to-speech is used only for languages the phone can't speak.
+- **Accuracy check.** `npx tsx scripts/evalVoiceAgent.mts` asks 30 real questions in 6 languages and checks the price, the cards, the screen opened and the script of the reply. On Gemini alone it scored 25/30, and most misses were busy-server errors that the Groq fallback now covers.
 - **Typing always works too**, for anyone who can't or would rather not speak, and silence is caught before an AI call is spent on it.
 - **Tested.** `tests/voiceAgent.test.ts` covers the pricing maths, WAV encoding, the full function-calling loop (including passing Gemini's thought signatures back), tool failures, model fallback, filter-injection-safe scheme search, per-user data scoping, and both API routes.
 
