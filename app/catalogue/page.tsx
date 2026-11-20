@@ -5,12 +5,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useFollowingState } from '@/lib/useFollowingState'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
-import { useAI } from '@/lib/useAI'
 import { LANGUAGES } from '@/lib/languages'
 import RequireAuth from '@/components/RequireAuth'
 import { exportCataloguePPTX, exportCatalogueDOCX, type CatalogueData } from '@/lib/catalogueExport'
 import { useLanguage } from '@/lib/LanguageProvider'
-import type { TranslationKey } from '@/lib/translations'
+import { getTranslations, type TranslationKey } from '@/lib/translations'
 import CatalogueTemplateView, { type CatalogueProduct, type CatalogueLabels } from '@/components/CatalogueTemplateView'
 
 type Product = CatalogueProduct
@@ -18,7 +17,18 @@ type Labels = CatalogueLabels
 
 type PublishedCatalogue = { id: string; slug: string; title: string; created_at: string }
 
-const ENGLISH_LABELS: Labels = { title: 'Product Catalogue', material: 'Material', craft: 'Craft', contact: 'Contact', piece: 'piece', pieces: 'pieces' }
+// The catalogue document's own labels, in the language the catalogue is
+// being made in (not necessarily the app's UI language), straight from the
+// 23-language dictionary: instant, and identical every time.
+function documentLabels(lang: string): Labels {
+  const d = getTranslations(lang)
+  return {
+    title: d['catalogue.doc.title'], material: d['catalogue.doc.material'], craft: d['catalogue.doc.craft'],
+    contact: d['catalogue.doc.contact'], piece: d['catalogue.doc.piece'], pieces: d['catalogue.doc.pieces'],
+    handmadeBy: d['catalogue.doc.handmadeBy'], tagline: d['catalogue.doc.tagline'], story: d['catalogue.doc.story'],
+    enquire: d['catalogue.doc.enquire'],
+  }
+}
 
 // These labels are for the exported document itself (its own Language picker
 // below drives AI translation into whatever language the artisan wants that
@@ -35,14 +45,17 @@ const TEMPLATES: { id: string; labelKey: TranslationKey; descKey: TranslationKey
 function CataloguePageInner() {
   const { user, profile } = useAuth()
   const { t, language: uiLanguage } = useLanguage()
-  const { ask } = useAI()
   const [products, setProducts] = useState<Product[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [template, setTemplate] = useState<typeof TEMPLATES[number]['id']>('modern')
   const [language, setLanguage] = useFollowingState<typeof LANGUAGES[number]['id']>(uiLanguage)
   // See app/content/page.tsx for why this follows the site's own language
   // rather than always starting at English.
-  const [labels, setLabels] = useState<Labels>(ENGLISH_LABELS)
+  const [labels, setLabels] = useState<Labels>(() => documentLabels(uiLanguage))
+  // Product details translated into the catalogue language, by product id.
+  // Empty means "show them as the artisan wrote them".
+  const [translatedById, setTranslatedById] = useState<Record<string, Product>>({})
+  const [translateNotice, setTranslateNotice] = useState('')
   const [preparing, setPreparing] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [downloadError, setDownloadError] = useState('')
@@ -87,17 +100,37 @@ function CataloguePageInner() {
 
   async function handlePrepare() {
     setPreparing(true)
-    if (language === 'en') {
-      setLabels(ENGLISH_LABELS)
+    setTranslateNotice('')
+    setLabels(documentLabels(language))
+    const chosen = products.filter((p) => selected.has(p.id))
+    if (language === 'en' || chosen.length === 0) {
+      setTranslatedById({})
     } else {
-      const languageName = LANGUAGES.find((l) => l.id === language)?.name ?? 'English'
-      const prompt = `Translate this JSON object's values into ${languageName}. Keep the keys exactly the same. Respond with ONLY the JSON object, no other text, no markdown code fences.\n\n${JSON.stringify(ENGLISH_LABELS)}`
-      const raw = await ask(prompt, 'general')
+      // The artisan's own product text goes into the catalogue language
+      // too, not just the headings. On failure it stays as written.
       try {
-        const cleaned = raw.replace(/^```json\s*|```\s*$/g, '').trim()
-        setLabels({ ...ENGLISH_LABELS, ...JSON.parse(cleaned) })
+        const { data: sessionData } = await supabase?.auth.getSession() ?? { data: { session: null } }
+        const token = sessionData.session?.access_token
+        const res = await fetch('/api/catalogue-translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            language,
+            products: chosen.map(({ id, name, material, craft_type, description, craft_story }) => ({ id, name, material, craft_type, description, craft_story })),
+          }),
+        })
+        if (!res.ok) throw new Error(String(res.status))
+        const data = await res.json() as { products: Partial<Product>[]; translated: boolean }
+        const map: Record<string, Product> = {}
+        for (const tp of data.products) {
+          const original = chosen.find((p) => p.id === tp.id)
+          if (original) map[original.id] = { ...original, ...tp, id: original.id, image_url: original.image_url }
+        }
+        setTranslatedById(map)
+        if (!data.translated) setTranslateNotice(t('catalogue.translateFailed'))
       } catch {
-        setLabels(ENGLISH_LABELS) // fall back rather than show broken/untranslated JSON
+        setTranslatedById({})
+        setTranslateNotice(t('catalogue.translateFailed'))
       }
     }
     setPreparing(false)
@@ -191,9 +224,11 @@ function CataloguePageInner() {
     setTemplate(data.template)
     setLanguage(data.language)
     setSlug(data.slug)
-    setLabels(data.data.labels)
-    const savedIds = new Set<string>((data.data.products ?? []).map((p: { id: string }) => p.id))
-    setSelected(savedIds)
+    setLabels({ ...documentLabels(data.language ?? 'en'), ...data.data.labels })
+    // A saved catalogue's products are already in its language.
+    const savedProducts: Product[] = data.data.products ?? []
+    setSelected(new Set(savedProducts.map((p) => p.id)))
+    setTranslatedById(Object.fromEntries(savedProducts.map((p) => [p.id, p])))
     setShowPreview(true)
     setPublishedUrl('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -279,7 +314,7 @@ function CataloguePageInner() {
     }
   }
 
-  const selectedProducts = products.filter((p) => selected.has(p.id))
+  const selectedProducts = products.filter((p) => selected.has(p.id)).map((p) => translatedById[p.id] ?? p)
 
   return (
     <div>
@@ -367,7 +402,7 @@ function CataloguePageInner() {
               }}
             >
               {preparing && <span className="ks-spinner" aria-hidden="true" />}
-              {preparing ? t('catalogue.preparing') : t('catalogue.previewCatalogue')}
+              {preparing ? (language === 'en' ? t('catalogue.preparing') : t('catalogue.translating')) : t('catalogue.previewCatalogue')}
             </button>
             {showPreview && (
               <>
@@ -401,6 +436,9 @@ function CataloguePageInner() {
               </>
             )}
           </div>
+          {translateNotice && (
+            <p role="status" style={{ ...inlineErrorStyle, marginTop: -12, marginBottom: 16, color: 'var(--ks-muted)' }}>{translateNotice}</p>
+          )}
           {downloadError && (
             <p role="alert" style={{ ...inlineErrorStyle, marginTop: -12, marginBottom: 20 }}>
               <span aria-hidden="true" style={{ color: 'var(--ks-clay)' }}>⚠</span> {downloadError}

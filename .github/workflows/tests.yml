@@ -29,4 +29,4 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Lint API routes, tests and server libraries
-        run: npx eslint tests app/api lib/storyEvaluator.ts lib/readJson.ts lib/languages.ts lib/pricing.ts lib/kalawallet.ts lib/rateLimit.ts lib/requireUser.ts lib/useFollowingState.ts lib/gemini.ts lib/imageProviders.ts lib/voiceAgent.ts lib/voiceAgentData.ts lib/fairPrice.ts lib/wav.ts app/voice components/VoiceAgentBanner.tsx lib/artDirector.ts lib/authErrors.ts lib/useAI.ts
+        run: npx eslint tests app/api lib/storyEvaluator.ts lib/readJson.ts lib/languages.ts lib/pricing.ts lib/kalawallet.ts lib/rateLimit.ts lib/requireUser.ts lib/useFollowingState.ts lib/gemini.ts lib/imageProviders.ts lib/voiceAgent.ts lib/voiceAgentData.ts lib/fairPrice.ts lib/wav.ts app/voice components/VoiceAgentBanner.tsx lib/artDirector.ts lib/authErrors.ts lib/useAI.ts lib/catalogueTranslate.ts components/CatalogueTemplateView.tsx

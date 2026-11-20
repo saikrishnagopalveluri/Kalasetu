@@ -41,10 +41,10 @@ const GROW_ACTIONS: QuickAction[] = [
   { Icon: IconPricing, titleKey: 'action.pricing.title', descKey: 'action.pricing.desc', href: '/pricing', accent: '#D4A017' },
 ]
 
-const DEMO_RECENT: { emoji: string; labelKey: TranslationKey; product: string; preset: string | null; timeKey: TranslationKey; timeN?: number }[] = [
-  { emoji: '📸', labelKey: 'home.demo.photoshoot', product: 'Jamdani Saree', preset: 'Studio', timeKey: 'time.hoursAgo', timeN: 2 },
-  { emoji: '📢', labelKey: 'home.demo.instagramPost', product: 'Kalamkari Dupatta', preset: 'Festival', timeKey: 'time.yesterday' },
-  { emoji: '✍️', labelKey: 'home.demo.description', product: 'Filigree Necklace', preset: null, timeKey: 'time.daysAgo', timeN: 2 },
+const DEMO_RECENT: { emoji: string; labelKey: TranslationKey; productKey: TranslationKey; presetKey: TranslationKey | null; timeKey: TranslationKey; timeN?: number }[] = [
+  { emoji: '📸', labelKey: 'home.demo.photoshoot', productKey: 'home.demo.product.jamdani', presetKey: 'studio.preset.studio', timeKey: 'time.hoursAgo', timeN: 2 },
+  { emoji: '📢', labelKey: 'home.demo.instagramPost', productKey: 'home.demo.product.kalamkari', presetKey: 'studio.preset.festival', timeKey: 'time.yesterday' },
+  { emoji: '✍️', labelKey: 'home.demo.description', productKey: 'home.demo.product.filigree', presetKey: null, timeKey: 'time.daysAgo', timeN: 2 },
 ]
 
 const CONTENT_TYPE_META: Record<string, { emoji: string; labelKey: TranslationKey }> = {
@@ -479,7 +479,7 @@ function HomePageContent() {
           {DEMO_RECENT.map((item) => {
             const time = item.timeN ? t(item.timeKey).replace('{n}', String(item.timeN)) : t(item.timeKey)
             return (
-              <RecentRowCard key={item.product} emoji={item.emoji} title={item.product} subtitle={`${t(item.labelKey)} · ${time}`} preset={item.preset} />
+              <RecentRowCard key={item.productKey} emoji={item.emoji} title={t(item.productKey)} subtitle={`${t(item.labelKey)} · ${time}`} preset={item.presetKey ? t(item.presetKey) : null} />
             )
           })}
         </div>
