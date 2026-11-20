@@ -532,7 +532,9 @@ describe('POST /api/speak', () => {
     const body = bodyOf(fetchMock, 0)
     expect(modelOf(fetchMock, 0)).toBe('gemini-3.8-flash-tts')
     expect(body.generationConfig.responseModalities).toEqual(['AUDIO'])
-    expect(body.contents[0].parts[0].text).toBe('Say this in a warm, friendly Telugu voice, exactly as written: నమస్తే')
+    // Only the words to speak: the speech models sometimes read an
+    // instruction aloud ("Say this in a warm voice…"), so none is sent.
+    expect(body.contents[0].parts[0].text).toBe('నమస్తే')
   })
 
   it('tries the lighter speech model when the first is rate limited', async () => {

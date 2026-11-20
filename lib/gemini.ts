@@ -262,10 +262,14 @@ export async function geminiImage({ prompt, refImageDataUrl }: { prompt: string;
 // including languages many phones have no built-in voice for. The free
 // tier allows only a few requests a minute, so callers must treat a
 // failure as "use the device's own voice instead", never as an error.
-export async function geminiSpeech({ text, languageName }: { text: string; languageName?: string }): Promise<{ audioDataUrl: string; model: string }> {
+// Only the words are sent: with a style instruction in front, the speech
+// models sometimes read the instruction aloud too (heard live on 20 Nov
+// 2026). The language is taken from the text itself. languageName is kept
+// in the signature so callers do not change.
+export async function geminiSpeech({ text }: { text: string; languageName?: string }): Promise<{ audioDataUrl: string; model: string }> {
   const spoken = text.trim().slice(0, 800)
   if (!spoken) throw new GeminiError('No text to speak', 400)
-  const instruction = `Say this in a warm, friendly${languageName ? ` ${languageName}` : ''} voice, exactly as written: ${spoken}`
+  const instruction = spoken
   let lastError: unknown
   for (const model of GEMINI_MODELS.speech) {
     try {
