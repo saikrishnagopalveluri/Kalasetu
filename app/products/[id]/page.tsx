@@ -52,20 +52,32 @@ function ProductDetailInner() {
   const addPhotosRef = useRef<HTMLInputElement>(null)
   const hoveringRef = useRef(false)
 
-  const load = useCallback(async () => {
-    if (!supabase) return
+  const fetchProduct = useCallback(async () => {
+    if (!supabase) return null
     const { data: p } = await supabase.from('products').select('id, user_id, name, material, craft_type, image_url').eq('id', id).maybeSingle()
+    const { data: imgs } = await supabase.from('product_images').select('id, image_url').eq('product_id', id).order('position', { ascending: true })
+    return { p, imgs }
+  }, [id])
+
+  const applyProduct = useCallback((loaded: Awaited<ReturnType<typeof fetchProduct>>) => {
+    if (!loaded) return
+    const { p, imgs } = loaded
     setProduct(p ?? null)
     if (p) {
       setName(p.name)
       setMaterial(p.material ?? '')
       setCraftType(p.craft_type ?? CRAFT_TYPES[0].value)
     }
-    const { data: imgs } = await supabase.from('product_images').select('id, image_url').eq('product_id', id).order('position', { ascending: true })
     setGallery(imgs ?? [])
-  }, [id])
+  }, [])
 
-  useEffect(() => { load() }, [load])
+  const load = useCallback(async () => applyProduct(await fetchProduct()), [applyProduct, fetchProduct])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchProduct().then((loaded) => { if (!cancelled) applyProduct(loaded) })
+    return () => { cancelled = true }
+  }, [fetchProduct, applyProduct])
 
   const slides = product?.image_url ? [product.image_url, ...gallery.map((g) => g.image_url)] : gallery.map((g) => g.image_url)
 
@@ -81,9 +93,9 @@ function ProductDetailInner() {
     return () => clearInterval(timer)
   }, [slides.length])
 
-  useEffect(() => {
-    if (activeIndex >= slides.length) setActiveIndex(0)
-  }, [slides.length, activeIndex])
+  // If photos were removed, fall back to the first slide instead of
+  // pointing past the end.
+  const currentSlide = activeIndex >= slides.length ? 0 : activeIndex
 
   const isOwner = !!user && product?.user_id === user.id
 
@@ -163,7 +175,7 @@ function ProductDetailInner() {
                 alt={name}
                 style={{
                   position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-                  opacity: i === activeIndex ? 1 : 0,
+                  opacity: i === currentSlide ? 1 : 0,
                   transition: 'opacity 0.5s ease',
                 }}
               />
@@ -191,7 +203,7 @@ function ProductDetailInner() {
                       onClick={() => setActiveIndex(i)}
                       style={{
                         width: 7, height: 7, borderRadius: '50%', border: 'none', padding: 0,
-                        background: i === activeIndex ? '#fff' : 'rgba(255,255,255,0.5)',
+                        background: i === currentSlide ? '#fff' : 'rgba(255,255,255,0.5)',
                         boxShadow: '0 0 0 1px rgba(19,42,69,0.3)', cursor: 'pointer',
                       }}
                     />
@@ -210,7 +222,7 @@ function ProductDetailInner() {
                   onClick={() => setActiveIndex(i)}
                   style={{
                     flexShrink: 0, width: 56, height: 56, borderRadius: 8, padding: 0, overflow: 'hidden',
-                    border: i === activeIndex ? '2px solid var(--ks-indigo)' : '1px solid var(--ks-border)',
+                    border: i === currentSlide ? '2px solid var(--ks-indigo)' : '1px solid var(--ks-border)',
                     cursor: 'pointer', background: 'none',
                   }}
                 >

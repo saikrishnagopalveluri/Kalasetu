@@ -44,6 +44,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     if (profile?.preferred_language) {
       resolvedRef.current = true
+      // This effect is the one place the starting language is read from
+      // outside React (the signed-in profile and localStorage). Reading
+      // localStorage during render would break server rendering, so the
+      // state update has to happen here, once per session.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLanguageState(profile.preferred_language as LanguageId)
       setShowGate(false)
       try { localStorage.setItem(STORAGE_KEY, profile.preferred_language) } catch { /* private browsing etc. */ }

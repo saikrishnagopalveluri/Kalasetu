@@ -57,21 +57,21 @@ function ProfileInner() {
     slug: useId(), phone: useId(),
   }
 
-  useEffect(() => {
-    if (!profile) return
+  // Refill the form whenever a new profile object arrives, the React way:
+  // compare with the last one seen during render instead of an effect, so
+  // there is no extra render with stale values. Same timing as before.
+  const [formProfile, setFormProfile] = useState<typeof profile>(null)
+  if (profile && profile !== formProfile) {
+    setFormProfile(profile)
     setSlug(profile.public_slug ?? slugify(profile.name ?? ''))
     setContactPhone(profile.public_contact_phone ?? '')
     setPublished(profile.catalogue_published ?? false)
-  }, [profile])
-
-  useEffect(() => {
-    if (!profile) return
     setName(profile.name ?? '')
     setBusinessName(profile.business_name ?? '')
     setAbout(profile.about ?? '')
     setPhotoUrl(profile.profile_photo_url ?? null)
     setLanguagesKnown(profile.languages_known ?? [])
-  }, [profile])
+  }
 
   useEffect(() => {
     if (!supabase || !user) return

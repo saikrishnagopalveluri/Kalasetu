@@ -59,7 +59,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<ArtisanProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => Boolean(supabase))
   const [error, setError] = useState<string | null>(null)
 
   const loadProfile = useCallback(async (userId: string) => {
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (!supabase) { setLoading(false); return }
+    if (!supabase) return
 
     supabase.auth.getSession().then(async ({ data }) => {
       setUser(data.session?.user ?? null)

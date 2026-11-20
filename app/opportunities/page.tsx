@@ -29,10 +29,11 @@ function isSoon(deadline: string | null): boolean {
 
 function OpportunitiesPageInner() {
   const { t } = useLanguage()
-  const [items, setItems] = useState<Opportunity[] | null>(null)
+  // No backend configured: nothing to load, so start at the empty state.
+  const [items, setItems] = useState<Opportunity[] | null>(() => (supabase ? null : []))
 
   useEffect(() => {
-    if (!supabase) { setItems([]); return }
+    if (!supabase) return
     supabase
       .from('opportunities')
       .select('id, type, title, description, official_url, deadline')

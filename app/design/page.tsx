@@ -82,9 +82,13 @@ function DesignPageInner() {
   // (state updates are async and would let a second click sneak through).
   const savingGenerationRef = useRef<DesignResult | null>(null)
 
-  useEffect(() => {
-    if (profile?.craft_type && CRAFT_TYPES.some((c) => c.value === profile.craft_type)) setCraftType(profile.craft_type)
-  }, [profile])
+  // Default the craft to the artisan's own once their profile arrives.
+  const [craftFromProfile, setCraftFromProfile] = useState<string | null>(null)
+  const profileCraft = profile?.craft_type && CRAFT_TYPES.some((c) => c.value === profile.craft_type) ? profile.craft_type : null
+  if (profileCraft && profileCraft !== craftFromProfile) {
+    setCraftFromProfile(profileCraft)
+    setCraftType(profileCraft)
+  }
 
   useEffect(() => {
     if (!supabase || !user) return

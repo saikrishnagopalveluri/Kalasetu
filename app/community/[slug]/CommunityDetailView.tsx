@@ -40,8 +40,14 @@ export default function CommunityDetailView({ story }: { story: Story }) {
   // it doesn't get overridden if the site language changes later.
   const [viewLanguage, setViewLanguage] = useState<string>(language)
   const userPickedLanguage = useRef(false)
-  const [translated, setTranslated] = useState<{ title: string; content: string } | null>(null)
-  const [translating, setTranslating] = useState(false)
+  // The latest translation, with the language it is in. Anything that
+  // is not the language being viewed is ignored, so switching back to the
+  // original needs no reset, and "translating" is simply "asked for a
+  // language we have no answer for yet".
+  const [translation, setTranslation] = useState<{ lang: string; title: string; content: string } | null>(null)
+  const [failedLang, setFailedLang] = useState<string | null>(null)
+  const translated = translation && translation.lang === viewLanguage && viewLanguage !== story.language ? translation : null
+  const translating = viewLanguage !== story.language && !translated && failedLang !== viewLanguage
 
   useEffect(() => {
     if (!userPickedLanguage.current) setViewLanguage(language)
@@ -67,15 +73,16 @@ export default function CommunityDetailView({ story }: { story: Story }) {
   }, [user, story.id])
 
   useEffect(() => {
-    if (viewLanguage === story.language) { setTranslated(null); return }
+    if (viewLanguage === story.language) return
     let cancelled = false
-    setTranslating(true)
     fetch('/api/story-translate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ storyId: story.id, language: viewLanguage }),
     }).then((r) => r.ok ? r.json() : null).then((data) => {
-      if (!cancelled && data?.title) setTranslated(data)
-    }).finally(() => { if (!cancelled) setTranslating(false) })
+      if (cancelled) return
+      if (data?.title) setTranslation({ lang: viewLanguage, title: data.title, content: data.content })
+      else setFailedLang(viewLanguage)
+    }).catch(() => { if (!cancelled) setFailedLang(viewLanguage) })
     return () => { cancelled = true }
   }, [viewLanguage, story.id, story.language])
 

@@ -84,8 +84,6 @@ function TierBadge({ tier }: { tier: string }) {
 function ArtisansTab() {
   const [artisans, setArtisans] = useState<Artisan[] | null>(null)
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     const { data } = await supabase!
       .from('artisan_profiles')
@@ -93,6 +91,11 @@ function ArtisansTab() {
       .order('created_at', { ascending: false })
     setArtisans(data ?? [])
   }
+
+  // load() is async and only sets state after its database query resolves,
+  // so nothing is set synchronously here; the linter cannot see past the await.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [])
 
   async function updateTier(id: string, tier: string) {
     const { error } = await supabase!.from('artisan_profiles').update({ subscription_tier: tier }).eq('id', id)
@@ -222,8 +225,6 @@ function StoriesTab() {
   const [stories, setStories] = useState<Story[] | null>(null)
   const [names, setNames] = useState<Map<string, string>>(new Map())
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     const { data } = await supabase!
       .from('stories')
@@ -237,6 +238,11 @@ function StoriesTab() {
       setNames(new Map((profiles ?? []).map((p: { id: string; name: string }) => [p.id, p.name])))
     }
   }
+
+  // load() is async and only sets state after its database query resolves,
+  // so nothing is set synchronously here; the linter cannot see past the await.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [])
 
   async function handleDelete(id: string) {
     await supabase!.from('stories').delete().eq('id', id)

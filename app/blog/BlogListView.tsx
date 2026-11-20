@@ -13,11 +13,13 @@ type TranslatedFields = { title: string; summary: string }
 // on top, it never re-fetches the post list itself.
 export default function BlogListView({ posts }: { posts: BlogSummary[] }) {
   const { t, language } = useLanguage()
-  const [translations, setTranslations] = useState<Record<string, TranslatedFields>>({})
+  // Translations are stored with the language they belong to, so a
+  // language switch simply shows nothing until the new ones arrive.
+  const [translationState, setTranslations] = useState<{ lang: string; map: Record<string, TranslatedFields> }>({ lang: '', map: {} })
+  const translations = translationState.lang === language ? translationState.map : {}
 
   useEffect(() => {
     if (!supabase || posts.length === 0) return
-    setTranslations({})
     if (language === 'en') return
 
     let cancelled = false
@@ -34,7 +36,7 @@ export default function BlogListView({ posts }: { posts: BlogSummary[] }) {
       for (const row of cached ?? []) {
         if (row.summary) found[row.blog_slug] = { title: row.title, summary: row.summary }
       }
-      if (Object.keys(found).length > 0) setTranslations((prev) => ({ ...prev, ...found }))
+      if (Object.keys(found).length > 0) setTranslations((prev) => ({ lang: language, map: { ...(prev.lang === language ? prev.map : {}), ...found } }))
 
       const missing = posts.filter((p) => !found[p.slug])
       if (missing.length === 0) return
@@ -72,7 +74,7 @@ export default function BlogListView({ posts }: { posts: BlogSummary[] }) {
             console.error('Blog list translation failed:', r.reason)
           }
         }
-        if (Object.keys(newlyTranslated).length > 0) setTranslations((prev) => ({ ...prev, ...newlyTranslated }))
+        if (Object.keys(newlyTranslated).length > 0) setTranslations((prev) => ({ lang: language, map: { ...(prev.lang === language ? prev.map : {}), ...newlyTranslated } }))
         if (i + BATCH_SIZE < missing.length) await new Promise((r) => setTimeout(r, 1200))
       }
     }

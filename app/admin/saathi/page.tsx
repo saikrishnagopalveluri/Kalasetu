@@ -23,10 +23,6 @@ function AdminSaathiInner() {
   const [walletIssued, setWalletIssued] = useState<{ earned: number; redeemed: number } | null>(null)
   const [markingId, setMarkingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    load()
-  }, [])
-
   async function load() {
     if (!supabase) return
     const { data: referralRows } = await supabase.from('saathi_referrals').select('id, saathi_id, referred_user_id, status, created_at').order('created_at', { ascending: false })
@@ -50,6 +46,13 @@ function AdminSaathiInner() {
       setNames(new Map((profiles ?? []).map((p: Profile) => [p.id, p.name])))
     }
   }
+
+  // load() is async and only sets state after its database query resolves,
+  // so nothing is set synchronously here; the linter cannot see past the await.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load()
+  }, [])
 
   async function markPaid(rewardId: string) {
     if (!supabase) return
