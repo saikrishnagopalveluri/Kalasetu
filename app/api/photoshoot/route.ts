@@ -3,6 +3,7 @@ import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { generateImage, AllProvidersFailedError } from '@/lib/imageProviders'
+import { directPhotoshoot } from '@/lib/artDirector'
 
 const PRESET_PROMPTS: Record<string, string> = {
   studio: 'clean white studio background, professional product photography, soft even lighting, catalogue style',
@@ -41,12 +42,22 @@ export async function POST(request: NextRequest) {
     const refineDesc = refineNote && typeof refineNote === 'string' && refineNote.trim() ? `, ${refineNote.trim()}` : ''
     const prompt = `${productName}${typeof material === 'string' && material.trim() ? `, made of ${material.trim()}` : ''}${colorDesc}, ${styleDesc}${refineDesc}, professional photography, high quality, detailed, no text, no watermark`
 
+    const refImage = typeof refImageDataUrl === 'string' ? refImageDataUrl : undefined
+    // Gemini studies the real photo and writes a precise prompt so the
+    // generated shot shows this product, not a generic one. Falls back to
+    // the template prompt above if Gemini is unavailable.
+    const directed = await directPhotoshoot({
+      productName,
+      material: typeof material === 'string' ? material.trim() : undefined,
+      scene: styleDesc,
+      refineNote: typeof refineNote === 'string' ? refineNote.trim() || undefined : undefined,
+      refImageDataUrl: refImage,
+    })
+    const finalPrompt = directed ? `${directed}${colorDesc}, professional product photography, high quality, no text, no watermark` : prompt
+
     try {
-      const { imageDataUrl } = await generateImage({
-        prompt,
-        refImageDataUrl: typeof refImageDataUrl === 'string' ? refImageDataUrl : undefined,
-      })
-      return NextResponse.json({ imageDataUrl, prompt })
+      const { imageDataUrl } = await generateImage({ prompt: finalPrompt, refImageDataUrl: refImage })
+      return NextResponse.json({ imageDataUrl, prompt: finalPrompt, promptBy: directed ? 'gemini' : 'template' })
     } catch (err) {
       if (err instanceof AllProvidersFailedError) {
         console.error('All image providers failed:', err.attempts)

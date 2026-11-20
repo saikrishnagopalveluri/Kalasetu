@@ -105,7 +105,9 @@ async function generateWithCloudflare({ prompt }: GenerateImageOptions): Promise
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, steps: 6 }),
+    // 8 is FLUX Schnell's maximum: noticeably sharper than 6 for the same
+    // free-tier cost class.
+    body: JSON.stringify({ prompt, steps: 8 }),
   })
   if (!res.ok) throw new ProviderError(await res.text(), res.status)
 

@@ -32,6 +32,11 @@ export const GEMINI_MODELS = {
   get gemma() {
     return process.env.GEMMA_MODEL || 'gemma-4-26b-a4b-it'
   },
+  // Quick structured jobs where a few seconds matter more than depth
+  // (writing an image prompt). Flash-Lite answered in 2-6 s in live tests.
+  get fast(): string {
+    return process.env.GEMINI_FAST_MODEL || 'gemini-3.1-flash-lite'
+  },
   get speech(): string[] {
     return modelList(process.env.GEMINI_TTS_MODEL, ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'])
   },

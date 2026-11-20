@@ -3,6 +3,7 @@ import { readJsonObject } from '@/lib/readJson'
 import { requireUser } from '@/lib/requireUser'
 import { isRateLimited, userKey } from '@/lib/rateLimit'
 import { generateImage, AllProvidersFailedError } from '@/lib/imageProviders'
+import { directDesign } from '@/lib/artDirector'
 
 // Visual language per inspiration theme — feeds the image model, kept separate
 // from the text prompt (app/api/ai/route.ts, mode "design_inspiration") which
@@ -41,9 +42,18 @@ export async function POST(request: NextRequest) {
     const notesDesc = notes && typeof notes === 'string' && notes.trim() ? `, ${notes.trim()}` : ''
     const prompt = `A new ${craftType} design concept, ${visualDesc}${notesDesc}, artisan reference sketch, rich detail, professional design mood board style, no text, no watermark`
 
+    // Gemini expands the theme into a specific design brief (named motifs,
+    // palette, craft technique); the template prompt is the fallback.
+    const directed = await directDesign({
+      craftType,
+      themeVisual: visualDesc,
+      notes: typeof notes === 'string' ? notes.trim() || undefined : undefined,
+    })
+    const finalPrompt = directed ? `${directed}, rich detail, no text, no watermark` : prompt
+
     try {
-      const { imageDataUrl } = await generateImage({ prompt })
-      return NextResponse.json({ imageDataUrl, prompt })
+      const { imageDataUrl } = await generateImage({ prompt: finalPrompt })
+      return NextResponse.json({ imageDataUrl, prompt: finalPrompt, promptBy: directed ? 'gemini' : 'template' })
     } catch (err) {
       if (err instanceof AllProvidersFailedError) {
         console.error('All image providers failed:', err.attempts)
