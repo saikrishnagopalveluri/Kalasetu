@@ -164,8 +164,14 @@ export async function runSchemeScrape(): Promise<SchemeScrapeResult> {
       // skip if a scheme with this exact title is already published, so a
       // re-crawl of an unchanged-in-substance page doesn't create a
       // duplicate listing every time the source's HTML shifts slightly.
-      const { data: existing } = await supabaseAdmin.from('opportunities').select('id').eq('title', extracted.title).maybeSingle()
-      if (existing) {
+      // The AI can also name the same page differently on a later run
+      // ("Udyam Registration (MSME)" then "... (MSME Registration)"), so one
+      // official page only ever gets one listing.
+      const { data: sameTitle } = await supabaseAdmin.from('opportunities').select('id').eq('title', extracted.title).maybeSingle()
+      const { data: samePage } = sameTitle
+        ? { data: null }
+        : await supabaseAdmin.from('opportunities').select('id').eq('official_url', source.url).limit(1).maybeSingle()
+      if (sameTitle || samePage) {
         summary.skippedDuplicate++
         await supabaseAdmin.from('scheme_sources').update({ last_content_hash: hash }).eq('id', source.id)
         continue
