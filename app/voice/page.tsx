@@ -7,6 +7,7 @@ import { LANGUAGES, type LanguageId } from '@/lib/languages'
 import { useLanguage } from '@/lib/LanguageProvider'
 import { useFollowingState } from '@/lib/useFollowingState'
 import { fetchWithAuth } from '@/lib/authFetch'
+import { unlockAudio, unlockedPlayer } from '@/lib/audioUnlock'
 import { bytesToBase64, encodeWav, peakLevel, toMono16k } from '@/lib/wav'
 import { deviceVoiceFor } from '@/lib/deviceVoice'
 import type { AgentAction } from '@/lib/voiceAgent'
@@ -153,7 +154,10 @@ function VoicePageInner() {
       const { res } = await fetchWithAuth('/api/speak', { method: 'POST', body: JSON.stringify({ text, language }), signal: AbortSignal.timeout(15_000) })
       if (!res.ok) throw new Error('speech unavailable')
       const { audioDataUrl } = await res.json()
-      const audio = new Audio(audioDataUrl)
+      // The player unlocked during the artisan's tap: phones refuse to start
+      // a new one this long after the tap (see lib/audioUnlock.ts).
+      const audio = unlockedPlayer()
+      audio.src = audioDataUrl
       audioRef.current = audio
       audio.onended = () => setStatus('idle')
       await audio.play()
@@ -239,6 +243,7 @@ function VoicePageInner() {
   }
 
   function onMicClick() {
+    unlockAudio()
     if (status === 'recording') stopRecording()
     else if (status === 'speaking') stopSpeaking()
     else if (status === 'idle') void startRecording()
@@ -248,6 +253,7 @@ function VoicePageInner() {
     const q = text.trim()
     if (!q || status === 'thinking' || status === 'recording') return
     stopSpeaking()
+    unlockAudio()
     setTyped('')
     void ask({ text: q })
   }
