@@ -28,8 +28,8 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {})
   vi.stubGlobal('fetch', vi.fn(async (url: string) =>
     url.endsWith('/robots.txt')
-      ? { ok: true, text: async () => '' }
-      : { ok: true, status: 200, text: async () => '<p>Register your enterprise as MSME for free.</p>' }))
+      ? { ok: true, text: async (): Promise<string> => '' }
+      : { ok: true, status: 200, text: async (): Promise<string> => '<p>Register your enterprise as MSME for free.</p>' }))
   state.anthropicCreate.mockResolvedValue({
     content: [{ type: 'text', text: JSON.stringify({ title: 'Udyam Registration (MSME Registration)', description: 'Free MSME registration.', type: 'scheme', deadline: null, relevant: true }) }],
   })
