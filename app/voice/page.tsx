@@ -6,7 +6,7 @@ import RequireAuth from '@/components/RequireAuth'
 import { LANGUAGES, type LanguageId } from '@/lib/languages'
 import { useLanguage } from '@/lib/LanguageProvider'
 import { useFollowingState } from '@/lib/useFollowingState'
-import { supabase } from '@/lib/supabase'
+import { fetchWithAuth } from '@/lib/authFetch'
 import { bytesToBase64, encodeWav, peakLevel, toMono16k } from '@/lib/wav'
 import { deviceVoiceFor } from '@/lib/deviceVoice'
 import type { AgentAction } from '@/lib/voiceAgent'
@@ -42,6 +42,7 @@ function useVoiceLabels() {
     tooQuiet: t('voice.tooQuiet'),
     badRecording: t('voice.badRecording'),
     busy: t('voice.busy'),
+    signInAgain: t('voice.signInAgain'),
     tooMany: t('common.tooManyRequests'),
     fairPrice: t('voice.fairPrice'),
     online: t('voice.online'),
@@ -68,12 +69,6 @@ type Turn = { id: number; role: 'user' | 'assistant'; text: string; actions?: Ag
 
 const MAX_RECORDING_MS = 45_000
 const rupees = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data } = await supabase?.auth.getSession() ?? { data: { session: null } }
-  const token = data.session?.access_token
-  return { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-}
 
 // Decodes whatever the browser recorded and re-encodes it as 16 kHz mono
 // WAV, the format Gemini reliably accepts from every browser.
@@ -155,7 +150,7 @@ function VoicePageInner() {
       return
     }
     try {
-      const res = await fetch('/api/speak', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ text, language }), signal: AbortSignal.timeout(15_000) })
+      const { res } = await fetchWithAuth('/api/speak', { method: 'POST', body: JSON.stringify({ text, language }), signal: AbortSignal.timeout(15_000) })
       if (!res.ok) throw new Error('speech unavailable')
       const { audioDataUrl } = await res.json()
       const audio = new Audio(audioDataUrl)
@@ -173,14 +168,13 @@ function VoicePageInner() {
     const history = turns.slice(-8).map((t) => ({ role: t.role, content: t.text }))
     if (payload.text) setTurns((prev) => [...prev, { id: nextId.current++, role: 'user', text: payload.text! }])
     try {
-      const res = await fetch('/api/voice-agent', {
+      const { res, signedOut } = await fetchWithAuth('/api/voice-agent', {
         method: 'POST',
-        headers: await authHeaders(),
         body: JSON.stringify({ ...payload, history, language }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(res.status === 400 ? L.badRecording : res.status === 429 ? L.tooMany : L.busy)
+        throw new Error(signedOut ? L.signInAgain : res.status === 400 ? L.badRecording : res.status === 429 ? L.tooMany : L.busy)
       }
       setTurns((prev) => [
         ...prev,

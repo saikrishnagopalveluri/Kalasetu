@@ -131,7 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile])
 
   const logOut = useCallback(async () => {
-    await supabase?.auth.signOut()
+    // 'local' ends the login on this device only. supabase-js defaults to
+    // 'global', which also signed the artisan out of every other device
+    // while those devices kept showing them as signed in.
+    await supabase?.auth.signOut({ scope: 'local' })
     setUser(null)
     setProfile(null)
   }, [])
